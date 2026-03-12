@@ -73,9 +73,29 @@ class FloatingService : Service() {
                     true
                 }
 
-                // Trạng thái 3: Nhấc ngón tay lên (ACTION_UP)
+                // Trạng thái 3: Nhấc ngón tay lên (ACTION_UP) -> HÍT VÀO LỀ
                 MotionEvent.ACTION_UP -> {
-                    // Tạm thời chưa làm gì. (Sau này mình sẽ code vụ click mở menu ở đây)
+                    // 1. Lấy tổng chiều rộng của màn hình điện thoại
+                    val screenWidth = android.content.res.Resources.getSystem().displayMetrics.widthPixels
+                    val halfScreenWidth = screenWidth / 2
+
+                    // 2. Kiểm tra xem tọa độ hiện tại của ngôi sao đang ở nửa trái hay nửa phải màn hình
+                    val targetX = if (params.x + (floatingView.width / 2) < halfScreenWidth) {
+                        0 // Nếu ở nửa bên trái -> Đích đến là sát lề trái (x = 0)
+                    } else {
+                        screenWidth - floatingView.width // Nếu ở nửa bên phải -> Đích đến là sát lề phải
+                    }
+
+                    // 3. Tạo hiệu ứng trượt mượt mà (Animation) từ vị trí hiện tại tới đích
+                    val animator = android.animation.ValueAnimator.ofInt(params.x, targetX)
+                    animator.duration = 250 // Chạy hiệu ứng trong 250 mili-giây
+                    animator.addUpdateListener { animation ->
+                        params.x = animation.animatedValue as Int
+                        // Cập nhật lại vị trí liên tục tạo cảm giác trượt
+                        windowManager.updateViewLayout(floatingView, params)
+                    }
+                    animator.start() // Bắt đầu trượt!
+
                     true
                 }
                 else -> false
