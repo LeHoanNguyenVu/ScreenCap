@@ -9,21 +9,27 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.Toast
+import kotlin.math.abs
 
 class FloatingService : Service() {
 
     private lateinit var windowManager: WindowManager
     private lateinit var floatingView: View
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
-    }
+    override fun onBind(intent: Intent?): IBinder? { return null }
 
     override fun onCreate() {
         super.onCreate()
 
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         floatingView = LayoutInflater.from(this).inflate(R.layout.layout_floating_widget, null)
+
+        // Ánh xạ các thành phần giao diện mới
+        val viewCollapsed = floatingView.findViewById<View>(R.id.view_collapsed)
+        val viewExpanded = floatingView.findViewById<View>(R.id.view_expanded)
+        val btnCapture = floatingView.findViewById<View>(R.id.btn_capture)
+        val btnClose = floatingView.findViewById<View>(R.id.btn_close)
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -39,67 +45,75 @@ class FloatingService : Service() {
 
         windowManager.addView(floatingView, params)
 
-        // --- ĐOẠN CODE MỚI: XỬ LÝ KÉO THẢ (DRAG & DROP) ---
-
-        // Tạo các biến để lưu trữ vị trí ban đầu của ngôi sao và ngón tay
+        // --- BIẾN DÙNG ĐỂ TÍNH TOÁN KÉO & CLICK ---
         var initialX = 0
         var initialY = 0
         var initialTouchX = 0f
         var initialTouchY = 0f
+        var isMoved = false // Cờ hiệu nhận biết Kéo hay Click
 
-        // Lắng nghe sự kiện ngón tay chạm vào ngôi sao
-        floatingView.setOnTouchListener { _, event ->
+        viewCollapsed.setOnTouchListener { _, event ->
             when (event.action) {
-                // Trạng thái 1: Vừa đặt ngón tay xuống (ACTION_DOWN)
                 MotionEvent.ACTION_DOWN -> {
-                    // Ghi nhớ lại vị trí của ngôi sao lúc này
                     initialX = params.x
                     initialY = params.y
-                    // Ghi nhớ tọa độ tuyệt đối của ngón tay trên màn hình
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
+                    isMoved = false // Vừa chạm vào thì chưa di chuyển
                     true
                 }
 
-                // Trạng thái 2: Giữ ngón tay và di chuyển (ACTION_MOVE)
                 MotionEvent.ACTION_MOVE -> {
-                    // Tính toán xem ngón tay đã trượt đi bao nhiêu xa so với lúc đầu
-                    // Rồi cộng dồn vào vị trí ban đầu của ngôi sao
-                    params.x = initialX + (event.rawX - initialTouchX).toInt()
-                    params.y = initialY + (event.rawY - initialTouchY).toInt()
+                    // Tính khoảng cách ngón tay đã trượt đi
+                    val diffX = abs(event.rawX - initialTouchX)
+                    val diffY = abs(event.rawY - initialTouchY)
 
-                    // Cập nhật lại vị trí hiển thị liên tục
-                    windowManager.updateViewLayout(floatingView, params)
-                    true
-                }
-
-                // Trạng thái 3: Nhấc ngón tay lên (ACTION_UP) -> HÍT VÀO LỀ
-                MotionEvent.ACTION_UP -> {
-                    // 1. Lấy tổng chiều rộng của màn hình điện thoại
-                    val screenWidth = android.content.res.Resources.getSystem().displayMetrics.widthPixels
-                    val halfScreenWidth = screenWidth / 2
-
-                    // 2. Kiểm tra xem tọa độ hiện tại của ngôi sao đang ở nửa trái hay nửa phải màn hình
-                    val targetX = if (params.x + (floatingView.width / 2) < halfScreenWidth) {
-                        0 // Nếu ở nửa bên trái -> Đích đến là sát lề trái (x = 0)
-                    } else {
-                        screenWidth - floatingView.width // Nếu ở nửa bên phải -> Đích đến là sát lề phải
-                    }
-
-                    // 3. Tạo hiệu ứng trượt mượt mà (Animation) từ vị trí hiện tại tới đích
-                    val animator = android.animation.ValueAnimator.ofInt(params.x, targetX)
-                    animator.duration = 250 // Chạy hiệu ứng trong 250 mili-giây
-                    animator.addUpdateListener { animation ->
-                        params.x = animation.animatedValue as Int
-                        // Cập nhật lại vị trí liên tục tạo cảm giác trượt
+                    // Nếu trượt xa hơn 10 pixel -> Đánh dấu là hành động KÉO (Drag)
+                    if (diffX > 10 || diffY > 10) {
+                        isMoved = true
+                        params.x = initialX + (event.rawX - initialTouchX).toInt()
+                        params.y = initialY + (event.rawY - initialTouchY).toInt()
                         windowManager.updateViewLayout(floatingView, params)
                     }
-                    animator.start() // Bắt đầu trượt!
+                    true
+                }
 
+                MotionEvent.ACTION_UP -> {
+                    if (!isMoved) {
+                        // NẾU LÀ CLICK (Không kéo di chuyển): Ẩn sao, Mở Menu
+                        viewCollapsed.visibility = View.GONE
+                        viewExpanded.visibility = View.VISIBLE
+                    } else {
+                        // NẾU LÀ DRAG (Có kéo đi): Logic hít lề cũ
+                        val screenWidth = resources.displayMetrics.widthPixels
+                        val halfScreenWidth = screenWidth / 2
+                        val targetX = if (params.x + (floatingView.width / 2) < halfScreenWidth) 0 else screenWidth - floatingView.width
+
+                        val animator = android.animation.ValueAnimator.ofInt(params.x, targetX)
+                        animator.duration = 250
+                        animator.addUpdateListener { animation ->
+                            params.x = animation.animatedValue as Int
+                            windowManager.updateViewLayout(floatingView, params)
+                        }
+                        animator.start()
+                    }
                     true
                 }
                 else -> false
             }
+        }
+
+        // --- XỬ LÝ SỰ KIỆN KHI BẤM NÚT TRONG MENU ---
+
+        // 1. Nút Tắt: Tiêu diệt Service -> Ngôi sao biến mất hoàn toàn
+        btnClose.setOnClickListener {
+            stopSelf()
+        }
+
+        // 2. Nút Chụp: Tạm thời hiện thông báo, sau đó tự thu menu lại thành ngôi sao
+        btnCapture.setOnClickListener {
+            viewExpanded.visibility = View.GONE
+            viewCollapsed.visibility = View.VISIBLE
         }
     }
 

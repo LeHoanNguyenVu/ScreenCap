@@ -2,13 +2,46 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:padding="8dp">
 
     <ImageView
-        android:id="@+id/btn_floating_capture"
+        android:id="@+id/view_collapsed"
         android:layout_width="60dp"
         android:layout_height="60dp"
+        android:layout_gravity="bottom|center_horizontal"
         android:background="@android:drawable/btn_star_big_on"
         android:elevation="5dp" />
+
+    <LinearLayout
+        android:id="@+id/view_expanded"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:visibility="gone"
+        android:background="@android:color/transparent">
+
+        <TextView
+            android:id="@+id/btn_close"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_bubble"
+            android:gravity="center"
+            android:text="❌"
+            android:textSize="20sp"
+            android:elevation="5dp"
+            android:layout_marginBottom="12dp"/>
+
+        <TextView
+            android:id="@+id/btn_capture"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_bubble"
+            android:gravity="center"
+            android:text="📸"
+            android:textSize="24sp"
+            android:elevation="5dp"/>
+    </LinearLayout>
 
 </FrameLayout>
