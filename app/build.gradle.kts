@@ -11,7 +11,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.sceencap"
+        applicationId = "com.example.sceencap2"
         minSdk = 29
         targetSdk = 36
         versionCode = 1

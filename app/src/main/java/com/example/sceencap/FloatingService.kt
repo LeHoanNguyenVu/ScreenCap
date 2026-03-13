@@ -26,29 +26,6 @@ class FloatingService : Service() {
     override fun onCreate() {
         super.onCreate()
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            val channel = android.app.NotificationChannel(
-                "sceencap_channel",
-                "SceenCap Service",
-                android.app.NotificationManager.IMPORTANCE_LOW
-            )
-            val manager = getSystemService(android.app.NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
-
-            val notification = android.app.Notification.Builder(this, "sceencap_channel")
-                .setContentTitle("SceenCap")
-                .setContentText("Đang chạy ngầm để sẵn sàng chụp ảnh")
-                .setSmallIcon(android.R.drawable.ic_menu_camera) // Icon máy ảnh mặc định
-                .build()
-
-            // Đăng ký Service này là loại "Quay màn hình" hợp lệ
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                startForeground(1, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
-            } else {
-                startForeground(1, notification)
-            }
-        }
-
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         floatingView = LayoutInflater.from(this).inflate(R.layout.layout_floating_widget, null)
 
@@ -158,6 +135,25 @@ class FloatingService : Service() {
             } else {
                 @Suppress("DEPRECATION")
                 intent.getParcelableExtra("RESULT_DATA")
+            }
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                val channel = android.app.NotificationChannel(
+                    "sceencap_channel", "SceenCap Service", android.app.NotificationManager.IMPORTANCE_LOW
+                )
+                getSystemService(android.app.NotificationManager::class.java).createNotificationChannel(channel)
+
+                val notification = android.app.Notification.Builder(this, "sceencap_channel")
+                    .setContentTitle("SceenCap")
+                    .setContentText("Đang chạy ngầm để chụp ảnh")
+                    .setSmallIcon(android.R.drawable.ic_menu_camera)
+                    .build()
+
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    startForeground(1, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+                } else {
+                    startForeground(1, notification)
+                }
             }
 
             // Lấy thẻ xong thì chụp luôn
