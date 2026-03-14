@@ -1,9 +1,25 @@
 package com.example.sceencap
 
+import android.annotation.SuppressLint
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.graphics.Bitmap
 import android.graphics.PixelFormat
+import android.hardware.display.DisplayManager
+import android.hardware.display.VirtualDisplay
+import android.media.ImageReader
+import android.media.projection.MediaProjection
+import android.media.projection.MediaProjectionManager
+import android.os.Build
+import android.os.Handler
+import android.os.HandlerThread
 import android.os.IBinder
+import android.os.Looper
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -17,9 +33,18 @@ class FloatingService : Service() {
     private lateinit var windowManager: WindowManager
     private lateinit var floatingView: View
 
-    // 2 Biến lưu giữ "Thẻ bài" chụp màn hình
     private var screenCaptureResultCode: Int = 0
     private var screenCaptureResultData: Intent? = null
+
+    // Bộ 3 quyền lực chạy ngầm xuyên suốt
+    private var mediaProjection: MediaProjection? = null
+    private var virtualDisplay: VirtualDisplay? = null
+    private var imageReader: ImageReader? = null
+    private var handlerThread: HandlerThread? = null
+    private var backgroundHandler: Handler? = null
+
+    // LÁ CỜ CHỤP ẢNH: Bình thường hạ xuống, khi nào bấm nút mới phất lên
+    private var takePictureFlag = false
 
     override fun onBind(intent: Intent?): IBinder? { return null }
 
@@ -37,7 +62,7 @@ class FloatingService : Service() {
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )
@@ -48,7 +73,6 @@ class FloatingService : Service() {
 
         windowManager.addView(floatingView, params)
 
-        // --- LOGIC KÉO THẢ, HÍT LỀ & MỞ MENU BONG BÓNG ---
         var initialX = 0
         var initialY = 0
         var initialTouchX = 0f
@@ -78,15 +102,12 @@ class FloatingService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     if (!isMoved) {
-                        // NẾU CLICK: Mở menu bong bóng
                         viewCollapsed.visibility = View.GONE
                         viewExpanded.visibility = View.VISIBLE
                     } else {
-                        // NẾU KÉO XONG: Hít vào lề màn hình
                         val screenWidth = resources.displayMetrics.widthPixels
                         val halfScreenWidth = screenWidth / 2
                         val targetX = if (params.x + (floatingView.width / 2) < halfScreenWidth) 0 else screenWidth - floatingView.width
-
                         val animator = android.animation.ValueAnimator.ofInt(params.x, targetX)
                         animator.duration = 250
                         animator.addUpdateListener { animation ->
@@ -101,76 +122,163 @@ class FloatingService : Service() {
             }
         }
 
-        // --- SỰ KIỆN MENU BONG BÓNG ---
-        btnClose.setOnClickListener {
-            stopSelf() // Tắt hoàn toàn Service và bong bóng
-        }
+        btnClose.setOnClickListener { stopSelf() }
 
         btnCapture.setOnClickListener {
-            // Thu menu lại thành ngôi sao
             viewExpanded.visibility = View.GONE
             viewCollapsed.visibility = View.VISIBLE
 
-            // KIỂM TRA THẺ BÀI
-            if (screenCaptureResultData == null) {
-                // Lần đầu bấm: Chưa có thẻ -> Mở CaptureActivity xin quyền
+            if (mediaProjection == null) {
                 val intent = Intent(this, CaptureActivity::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(intent)
             } else {
-                // Những lần sau: Đã có thẻ -> Chụp luôn!
                 captureScreen()
             }
         }
     }
 
-    // --- NHẬN THẺ BÀI TỪ CAPTURE ACTIVITY GỬI VỀ ---
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "ACTION_SAVE_TOKEN_AND_CAPTURE") {
-            screenCaptureResultCode = intent.getIntExtra("RESULT_CODE", 0)
-
-            // Xử lý lấy Intent data an toàn cho nhiều phiên bản Android
-            screenCaptureResultData = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                intent.getParcelableExtra("RESULT_DATA", Intent::class.java)
-            } else {
+            try {
+                screenCaptureResultCode = intent.getIntExtra("RESULT_CODE", 0)
                 @Suppress("DEPRECATION")
-                intent.getParcelableExtra("RESULT_DATA")
-            }
+                screenCaptureResultData = intent.getParcelableExtra("RESULT_DATA")
 
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                val channel = android.app.NotificationChannel(
-                    "sceencap_channel", "SceenCap Service", android.app.NotificationManager.IMPORTANCE_LOW
-                )
-                getSystemService(android.app.NotificationManager::class.java).createNotificationChannel(channel)
+                // 1. Mặc giáp chạy ngầm
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val channel = NotificationChannel("sceencap_channel", "SceenCap", NotificationManager.IMPORTANCE_LOW)
+                    getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+                    val notification = Notification.Builder(this, "sceencap_channel")
+                        .setContentTitle("SceenCap")
+                        .setContentText("Đang sẵn sàng chụp")
+                        .setSmallIcon(android.R.drawable.ic_menu_camera)
+                        .build()
 
-                val notification = android.app.Notification.Builder(this, "sceencap_channel")
-                    .setContentTitle("SceenCap")
-                    .setContentText("Đang chạy ngầm để chụp ảnh")
-                    .setSmallIcon(android.R.drawable.ic_menu_camera)
-                    .build()
-
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                    startForeground(1, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
-                } else {
-                    startForeground(1, notification)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+                    } else {
+                        startForeground(1, notification)
+                    }
                 }
-            }
 
-            // Lấy thẻ xong thì chụp luôn
-            captureScreen()
+                // 2. Lắp đặt Camera An Ninh (Chỉ chạy đúng 1 lần duy nhất)
+                Handler(Looper.getMainLooper()).postDelayed({
+                    setupCameraStandby()
+                }, 300)
+
+            } catch (e: Throwable) {
+                Toast.makeText(this, "❌ Lỗi hệ thống: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
         return START_NOT_STICKY
     }
 
-    // --- HÀM XỬ LÝ CHỤP (Tạm thời là Demo) ---
+    @SuppressLint("WrongConstant")
+    private fun setupCameraStandby() {
+        if (mediaProjection != null) return // Đã lắp rồi thì không làm lại
+
+        try {
+            val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            mediaProjection = projectionManager.getMediaProjection(screenCaptureResultCode, screenCaptureResultData!!)
+
+            mediaProjection?.registerCallback(object : MediaProjection.Callback() {
+                override fun onStop() {
+                    super.onStop()
+                    mediaProjection = null
+                }
+            }, null)
+
+            val displayManager = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+            val display = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY)
+            val metrics = android.util.DisplayMetrics()
+            display.getRealMetrics(metrics)
+
+            var width = metrics.widthPixels
+            var height = metrics.heightPixels
+            val density = metrics.densityDpi
+
+            if (width % 2 != 0) width -= 1
+            if (height % 2 != 0) height -= 1
+
+            imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
+
+            handlerThread = HandlerThread("ScreenCapture")
+            handlerThread?.start()
+            backgroundHandler = Handler(handlerThread!!.looper)
+
+            // Máy quay liên tục chớp ảnh, nhưng chúng ta chỉ rửa ảnh khi nào có cờ
+            imageReader?.setOnImageAvailableListener({ reader ->
+                val image = reader.acquireLatestImage()
+                if (image != null) {
+                    if (takePictureFlag) {
+                        takePictureFlag = false // Hạ cờ xuống ngay lập tức để không chụp trùng
+
+                        try {
+                            val planes = image.planes
+                            val buffer = planes[0].buffer
+                            val pixelStride = planes[0].pixelStride
+                            val rowStride = planes[0].rowStride
+                            val rowPadding = rowStride - pixelStride * width
+
+                            val bitmapWidth = width + rowPadding / pixelStride
+                            val bitmap = Bitmap.createBitmap(bitmapWidth, height, Bitmap.Config.ARGB_8888)
+
+                            buffer.position(0)
+                            bitmap.copyPixelsFromBuffer(buffer)
+                            val finalBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height)
+
+                            Handler(Looper.getMainLooper()).post {
+                                Toast.makeText(this@FloatingService, "🎉 CHỤP THÀNH CÔNG! (${finalBitmap.width}x${finalBitmap.height})", Toast.LENGTH_LONG).show()
+                            }
+                        } catch (e: Throwable) {
+                            Handler(Looper.getMainLooper()).post {
+                                Toast.makeText(this@FloatingService, "❌ Lỗi điểm ảnh: ${e.message}", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                    // LUÔN LUÔN VỨT ẢNH CŨ ĐI ĐỂ GIẢI PHÓNG RAM
+                    image.close()
+                }
+            }, backgroundHandler)
+
+            val flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR or DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC
+
+            // BẬT MÁY CHIẾU SÁNG LIÊN TỤC VÀ KHÔNG BAO GIỜ TẮT
+            virtualDisplay = mediaProjection?.createVirtualDisplay(
+                "ScreenCapture",
+                width, height, density,
+                flags,
+                imageReader?.surface, null, backgroundHandler
+            )
+
+            // Lắp xong camera thì tự động bấm nút chụp luôn cho lần đầu tiên
+            captureScreen()
+
+        } catch (e: Throwable) {
+            Toast.makeText(this, "❌ Lỗi lắp Camera: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun captureScreen() {
-        Toast.makeText(this, "CHỤP CÁI RỤP! (Đã dùng thẻ bài)", Toast.LENGTH_SHORT).show()
+        if (mediaProjection == null) {
+            Toast.makeText(this, "❌ Máy quay bị sập, vui lòng bật lại app!", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        Toast.makeText(this, "📸 Đang nháy máy...", Toast.LENGTH_SHORT).show()
+
+        // MA THUẬT NẰM Ở ĐÂY: Chỉ cần phất cờ lên, bức ảnh lập tức được rửa ra!
+        takePictureFlag = true
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::floatingView.isInitialized) {
-            windowManager.removeView(floatingView)
-        }
+        if (::floatingView.isInitialized) windowManager.removeView(floatingView)
+        // Khi người dùng bấm Tắt app, ta mới dọn dẹp camera
+        virtualDisplay?.release()
+        imageReader?.close()
+        handlerThread?.quitSafely()
+        mediaProjection?.stop()
     }
 }
