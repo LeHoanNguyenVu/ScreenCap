@@ -1,5 +1,6 @@
 package com.example.sceencap
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.widget.ImageView
@@ -7,9 +8,18 @@ import androidx.appcompat.app.AppCompatActivity
 
 class CropActivity : AppCompatActivity() {
 
+    // --- MA THUẬT: Tạo biến toàn cục để điều khiển màn hình này từ xa ---
+    companion object {
+        @SuppressLint("StaticFieldLeak")
+        var instance: CropActivity? = null
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_crop)
+
+        // Ghi nhận màn hình đang mở
+        instance = this
 
         // Phóng to toàn màn hình
         window.setFlags(
@@ -18,29 +28,26 @@ class CropActivity : AppCompatActivity() {
         )
 
         val imgBg = findViewById<ImageView>(R.id.img_screenshot_bg)
-
-        // --- 1. TÌM ĐẾN CUSTOM VIEW CỦA CHÚNG TA ---
         val viewCropOverlay = findViewById<CropOverlayView>(R.id.view_crop_overlay)
 
-        // LẤY TẤM ẢNH VỪA CHỤP
         val bitmap = FloatingService.capturedBitmap
         if (bitmap != null) {
             imgBg.setImageBitmap(bitmap)
-
-            // --- 2. TRUYỀN TẤM ẢNH NÀY VÀO CUSTOM VIEW ĐỂ NÓ CẮT ---
             viewCropOverlay.setOriginalBitmap(bitmap)
-
         } else {
             finish()
         }
     }
 
-    // --- HÀM onResume ĐƯỢC ĐẶT Ở ĐÂY (Ngang hàng với onCreate) ---
-    // Hàm này sẽ tự động chạy mỗi khi bạn ấn nút Back để quay lại màn hình này
     override fun onResume() {
         super.onResume()
-        // Tìm Custom View và gọi lệnh reset để xóa sạch khung vẽ cũ
         val viewCropOverlay = findViewById<CropOverlayView>(R.id.view_crop_overlay)
         viewCropOverlay?.reset()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Dọn dẹp biến khi màn hình bị đóng để chống tràn RAM
+        instance = null
     }
 }

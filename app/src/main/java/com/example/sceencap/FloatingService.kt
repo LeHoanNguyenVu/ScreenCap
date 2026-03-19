@@ -32,28 +32,26 @@ class FloatingService : Service() {
 
     private lateinit var windowManager: WindowManager
     private lateinit var floatingView: View
+    private lateinit var windowParams: WindowManager.LayoutParams
+    private lateinit var viewCollapsed: View
 
     private var screenCaptureResultCode: Int = 0
     private var screenCaptureResultData: Intent? = null
 
-    // Bộ 3 quyền lực chạy ngầm xuyên suốt
+    // Bộ não trung tâm giữ quyền chụp
     private var mediaProjection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
     private var imageReader: ImageReader? = null
+
     private var handlerThread: HandlerThread? = null
     private var backgroundHandler: Handler? = null
 
-    // --- BIẾN TOÀN CỤC CHỨA ẢNH ĐỂ TRUYỀN SANG CROP ACTIVITY ---
     companion object {
         var capturedBitmap: Bitmap? = null
     }
 
-    // --- MA THUẬT SỬA LỖI LẶP ĐÚP TOAST ---
-    // Khóa 1: Lời yêu cầu chụp (Bình thường hạ xuống)
     private var takePictureFlag = false
-    // Khóa 2: Trạng thái đang đúc ảnh (Chặn khung hình tràn vào)
     private var isCaptureProcessing = false
-    // ----------------------------------------
 
     override fun onBind(intent: Intent?): IBinder? { return null }
 
@@ -63,12 +61,12 @@ class FloatingService : Service() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         floatingView = LayoutInflater.from(this).inflate(R.layout.layout_floating_widget, null)
 
-        val viewCollapsed = floatingView.findViewById<View>(R.id.view_collapsed)
+        viewCollapsed = floatingView.findViewById(R.id.view_collapsed)
         val viewExpanded = floatingView.findViewById<View>(R.id.view_expanded)
         val btnCapture = floatingView.findViewById<View>(R.id.btn_capture)
         val btnClose = floatingView.findViewById<View>(R.id.btn_close)
 
-        val params = WindowManager.LayoutParams(
+        windowParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE,
@@ -76,11 +74,11 @@ class FloatingService : Service() {
             PixelFormat.TRANSLUCENT
         )
 
-        params.gravity = Gravity.TOP or Gravity.START
-        params.x = 0
-        params.y = 200
+        windowParams.gravity = Gravity.TOP or Gravity.START
+        windowParams.x = 0
+        windowParams.y = 200
 
-        windowManager.addView(floatingView, params)
+        windowManager.addView(floatingView, windowParams)
 
         var initialX = 0
         var initialY = 0
@@ -91,8 +89,8 @@ class FloatingService : Service() {
         viewCollapsed.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    initialX = params.x
-                    initialY = params.y
+                    initialX = windowParams.x
+                    initialY = windowParams.y
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
                     isMoved = false
@@ -103,9 +101,9 @@ class FloatingService : Service() {
                     val diffY = abs(event.rawY - initialTouchY)
                     if (diffX > 10 || diffY > 10) {
                         isMoved = true
-                        params.x = initialX + (event.rawX - initialTouchX).toInt()
-                        params.y = initialY + (event.rawY - initialTouchY).toInt()
-                        windowManager.updateViewLayout(floatingView, params)
+                        windowParams.x = initialX + (event.rawX - initialTouchX).toInt()
+                        windowParams.y = initialY + (event.rawY - initialTouchY).toInt()
+                        windowManager.updateViewLayout(floatingView, windowParams)
                     }
                     true
                 }
@@ -116,12 +114,12 @@ class FloatingService : Service() {
                     } else {
                         val screenWidth = resources.displayMetrics.widthPixels
                         val halfScreenWidth = screenWidth / 2
-                        val targetX = if (params.x + (floatingView.width / 2) < halfScreenWidth) 0 else screenWidth - floatingView.width
-                        val animator = android.animation.ValueAnimator.ofInt(params.x, targetX)
+                        val targetX = if (windowParams.x + (floatingView.width / 2) < halfScreenWidth) 0 else screenWidth - floatingView.width
+                        val animator = android.animation.ValueAnimator.ofInt(windowParams.x, targetX)
                         animator.duration = 250
                         animator.addUpdateListener { animation ->
-                            params.x = animation.animatedValue as Int
-                            windowManager.updateViewLayout(floatingView, params)
+                            windowParams.x = animation.animatedValue as Int
+                            windowManager.updateViewLayout(floatingView, windowParams)
                         }
                         animator.start()
                     }
@@ -154,7 +152,6 @@ class FloatingService : Service() {
                 @Suppress("DEPRECATION")
                 screenCaptureResultData = intent.getParcelableExtra("RESULT_DATA")
 
-                // 1. Mặc giáp chạy ngầm
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     val channel = NotificationChannel("sceencap_channel", "SceenCap", NotificationManager.IMPORTANCE_LOW)
                     getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
@@ -171,7 +168,7 @@ class FloatingService : Service() {
                     }
                 }
 
-                // 2. Lắp đặt Camera An Ninh
+                // Cài đặt Camera chạy ngầm liên tục
                 Handler(Looper.getMainLooper()).postDelayed({
                     setupCameraStandby()
                 }, 300)
@@ -183,6 +180,16 @@ class FloatingService : Service() {
         return START_NOT_STICKY
     }
 
+    private val projectionCallback = object : MediaProjection.Callback() {
+        override fun onStop() {
+            super.onStop()
+            tearDownAll()
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(applicationContext, "⚠️ Quyền chụp màn hình đã hết hạn. Vui lòng bật lại app!", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     @SuppressLint("WrongConstant")
     private fun setupCameraStandby() {
         if (mediaProjection != null) return
@@ -190,13 +197,7 @@ class FloatingService : Service() {
         try {
             val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
             mediaProjection = projectionManager.getMediaProjection(screenCaptureResultCode, screenCaptureResultData!!)
-
-            mediaProjection?.registerCallback(object : MediaProjection.Callback() {
-                override fun onStop() {
-                    super.onStop()
-                    mediaProjection = null
-                }
-            }, null)
+            mediaProjection?.registerCallback(projectionCallback, null)
 
             val displayManager = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
             val display = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY)
@@ -210,6 +211,7 @@ class FloatingService : Service() {
             if (width % 2 != 0) width -= 1
             if (height % 2 != 0) height -= 1
 
+            // Giữ ImageReader chạy liên tục
             imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
 
             handlerThread = HandlerThread("ScreenCapture")
@@ -217,98 +219,120 @@ class FloatingService : Service() {
             backgroundHandler = Handler(handlerThread!!.looper)
 
             imageReader?.setOnImageAvailableListener({ reader ->
-                // Dùng acquireLatestImage để luôn lấy khung hình mới nhất, vứt bỏ các khung cũ
-                val image = reader.acquireLatestImage()
-                if (image != null) {
-                    // --- NÂNG CẤP KHÓA AN TOÀN ---
-                    // Phải có Lời yêu cầu CHÙA có người đang đúc ảnh, mới cho vào
-                    if (takePictureFlag && !isCaptureProcessing) {
-                        isCaptureProcessing = true // KHÓA CỬA LẠI
-                        takePictureFlag = false // Hạ cờ xuống ngay lập tức
+                try {
+                    val image = reader.acquireLatestImage()
+                    if (image != null) {
+                        // Nếu đang bấm chụp thì hốt ảnh
+                        if (takePictureFlag && !isCaptureProcessing) {
+                            isCaptureProcessing = true
+                            takePictureFlag = false
 
-                        try {
-                            val planes = image.planes
-                            val buffer = planes[0].buffer
-                            val pixelStride = planes[0].pixelStride
-                            val rowStride = planes[0].rowStride
-                            val rowPadding = rowStride - pixelStride * width
+                            try {
+                                val planes = image.planes
+                                val buffer = planes[0].buffer
+                                val pixelStride = planes[0].pixelStride
+                                val rowStride = planes[0].rowStride
+                                val rowPadding = rowStride - pixelStride * width
 
-                            val bitmapWidth = width + rowPadding / pixelStride
-                            val bitmap = Bitmap.createBitmap(bitmapWidth, height, Bitmap.Config.ARGB_8888)
+                                val bitmapWidth = width + rowPadding / pixelStride
+                                val bitmap = Bitmap.createBitmap(bitmapWidth, height, Bitmap.Config.ARGB_8888)
 
-                            buffer.position(0)
-                            bitmap.copyPixelsFromBuffer(buffer)
+                                buffer.position(0)
+                                bitmap.copyPixelsFromBuffer(buffer)
 
-                            // Tạo bức ảnh hoàn chỉnh cắt bỏ phần viền đen thừa
-                            val finalBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height)
+                                val finalBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height)
+                                capturedBitmap = finalBitmap
 
-                            // 1. CẤT ẢNH VÀO BIẾN COMPANION OBJECT
-                            capturedBitmap = finalBitmap
-
-                            // 2. CHUYỂN LUỒNG & GỌI MÀN HÌNH CROP MỞ LÊN
-                            Handler(Looper.getMainLooper()).post {
-                                Toast.makeText(this@FloatingService, "🎉 Đã chụp! Đang mở chế độ cắt...", Toast.LENGTH_SHORT).show()
-
-                                // Khởi chạy CropActivity từ Service
-                                val intent = Intent(this@FloatingService, CropActivity::class.java)
-                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                startActivity(intent)
-
-                                // MỞ KHÓA LẠI SAU KHI ĐÃ ĐIỀU HƯỚNG XONG (đảm bảo RAM ổn định)
-                                isCaptureProcessing = false
-                            }
-                        } catch (e: Throwable) {
-                            Handler(Looper.getMainLooper()).post {
-                                Toast.makeText(this@FloatingService, "❌ Lỗi điểm ảnh: ${e.message}", Toast.LENGTH_LONG).show()
-                                isCaptureProcessing = false // Lỗi cũng phải mở khóa
+                                Handler(Looper.getMainLooper()).post {
+                                    Toast.makeText(this@FloatingService, "🎉 Đã chụp! Đang mở chế độ cắt...", Toast.LENGTH_SHORT).show()
+                                    val intent = Intent(this@FloatingService, CropActivity::class.java)
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    startActivity(intent)
+                                    isCaptureProcessing = false
+                                }
+                            } catch (e: Throwable) {
+                                Handler(Looper.getMainLooper()).post {
+                                    Toast.makeText(this@FloatingService, "❌ Lỗi điểm ảnh: ${e.message}", Toast.LENGTH_LONG).show()
+                                    isCaptureProcessing = false
+                                }
                             }
                         }
+                        // Bắt buộc đóng ảnh liên tục để làm nhẹ RAM
+                        image.close()
                     }
-                    // Dọn rác
-                    image.close()
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }, backgroundHandler)
 
             val flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR or DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC
 
             virtualDisplay = mediaProjection?.createVirtualDisplay(
-                "ScreenCapture",
-                width, height, density,
-                flags,
+                "ScreenCapture", width, height, density, flags,
                 imageReader?.surface, null, backgroundHandler
             )
 
+            // Vừa cấp quyền xong là tự động bấm chụp lần 1
             captureScreen()
 
         } catch (e: Throwable) {
+            tearDownAll()
             Toast.makeText(this, "❌ Lỗi lắp Camera: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun captureScreen() {
         if (mediaProjection == null) {
-            Toast.makeText(this, "❌ Máy quay bị sập, vui lòng bật lại app!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "⚠️ Máy quay chưa sẵn sàng, vui lòng bấm biểu tượng app trên màn hình chính để cấp quyền lại!", Toast.LENGTH_LONG).show()
             return
         }
 
-        // Nếu đang đúc ảnh dở thì không cho xin thêm
         if (isCaptureProcessing) return
 
-
-        // Trì hoãn 300ms để giao diện có thời gian thu cái Menu lại thành Ngôi sao
+        // Đợi 300ms cho Menu thu lại
         Handler(Looper.getMainLooper()).postDelayed({
             Toast.makeText(this, "📸 Đang nháy máy...", Toast.LENGTH_SHORT).show()
-            takePictureFlag = true // Bắt đầu phất cờ chụp
+            takePictureFlag = true
+
+            // --- TUYỆT CHIÊU ÉP XUNG AN TOÀN TUYỆT ĐỐI ---
+            // Chỉ nhấp nháy độ mờ (alpha) của toàn bộ View từ 1.0 -> 0.9 -> 1.0
+            // Đảm bảo không làm mất màu hay hình ảnh của Ngôi sao!
+            val animator = android.animation.ValueAnimator.ofFloat(1f, 0.9f, 1f)
+            animator.duration = 400
+            animator.addUpdateListener {
+                floatingView.alpha = it.animatedValue as Float
+            }
+            animator.start()
+            // ---------------------------------------------
+
+            // KHÓA AN TOÀN: Nếu sau 2.5s mà không nhả ảnh, reset cờ
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (takePictureFlag) {
+                    takePictureFlag = false
+                    isCaptureProcessing = false
+                    Toast.makeText(this, "⚠️ Màn hình đang ngủ sâu, vui lòng bấm chụp lại!", Toast.LENGTH_SHORT).show()
+                }
+            }, 2500)
+
         }, 300)
-        // ----------------------------------------
+    }
+
+    private fun tearDownAll() {
+        virtualDisplay?.release()
+        virtualDisplay = null
+        imageReader?.close()
+        imageReader = null
+        handlerThread?.quitSafely()
+        handlerThread = null
+        backgroundHandler = null
+        mediaProjection?.unregisterCallback(projectionCallback)
+        mediaProjection?.stop()
+        mediaProjection = null
     }
 
     override fun onDestroy() {
         super.onDestroy()
         if (::floatingView.isInitialized) windowManager.removeView(floatingView)
-        virtualDisplay?.release()
-        imageReader?.close()
-        handlerThread?.quitSafely()
-        mediaProjection?.stop()
+        tearDownAll()
     }
 }

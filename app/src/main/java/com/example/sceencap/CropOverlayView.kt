@@ -15,6 +15,8 @@ class CropOverlayView @JvmOverloads constructor(
     // --- BIẾN TOÀN CỤC CHỨA ẢNH CẮT ĐỂ TRUYỀN SANG PREVIEW ACTIVITY ---
     companion object {
         var croppedBitmap: Bitmap? = null
+        // Biến static để chứa tọa độ Rect đã kéo trên màn hình
+        var currentRect = RectF()
     }
 
     // Biến chứa tấm ảnh nền gốc để cắt
@@ -90,6 +92,8 @@ class CropOverlayView @JvmOverloads constructor(
                 val top = cropRect.top.toInt()
                 val width = cropRect.width().toInt()
                 val height = cropRect.height().toInt()
+
+                currentRect.set(cropRect)
 
                 // Kiểm tra điều kiện:
                 // Nếu khung quá nhỏ (ví dụ nhỏ hơn 5 pixel mỗi cạnh), ta lờ đi
