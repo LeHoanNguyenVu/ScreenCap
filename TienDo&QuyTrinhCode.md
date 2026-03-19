@@ -1,24 +1,27 @@
-# 🚀 Nhật Ký Tiến Độ (Development Progress)
+# 🚀 TIẾN ĐỘ & QUY TRÌNH CODE: SCEENCAP
 
-## 📌 Giai Đoạn 1: Xây Dựng Lõi Chụp Màn Hình (Core Capture Engine)
-*Mục tiêu: Gọi được Floating Button, xin quyền hệ thống và chụp ra được 1 tấm ảnh Bitmap toàn màn hình.*
+## 1. Trạng thái hiện tại: Đã hoàn thiện 90% Core Flow
+Dự án đã có thể chạy mượt mà một vòng đời hoàn chỉnh (End-to-End Flow):
+`Lướt web -> Bấm Ngôi sao -> Bấm Chụp -> Vẽ khung sơ bộ -> Tinh chỉnh khung 4 góc -> Xác nhận -> Quét chữ (OCR) -> Lưu/Copy -> Trở về lướt web (Ngôi sao sống sót).`
 
-### ✅ Những Bước Đã Hoàn Thành (Done)
-- [x] **Setup Dự án:** Khởi tạo project Kotlin, xử lý lỗi tương thích giao diện Edge-to-Edge.
-- [x] **Cơ chế Cấp quyền:** Cấu hình `SYSTEM_ALERT_WINDOW` để hiển thị đè lên các ứng dụng khác.
-- [x] **Floating UI (Giao diện nổi):**
-    - Khởi tạo `FloatingService` chạy ngầm bằng `WindowManager`.
-    - Code logic Kéo thả (Drag & Drop) mượt mà.
-    - Xử lý UX: Tính toán tọa độ và dùng `ValueAnimator` tạo hiệu ứng "Snap to Edge" (Hít vào cạnh màn hình).
-    - Thiết kế Menu dạng "Bong bóng pop-up" hiện đại (Nút Chụp và Nút Tắt).
-- [x] **Luồng Xin quyền Quay màn hình (Smart Flow):**
-    - Khởi tạo `CaptureActivity` (Màn hình tàng hình) để gọi hộp thoại `MediaProjection`.
-    - Thiết lập cơ chế "Cache Token" (Lưu thẻ bài): Chỉ xin quyền 1 lần duy nhất cho mỗi phiên bật app, các lần sau bấm chụp trực tiếp.
+## 2. Cấu trúc File Logic (Cập nhật mới nhất)
+* **`FloatingService.kt`:** * *Vai trò:* Trái tim của ứng dụng. Quản lý Ngôi sao nổi và Lõi Máy quay (`MediaProjection`, `VirtualDisplay`, `ImageReader`).
+  * *Tuyệt chiêu:* Giữ máy quay thường trực. Sử dụng `ValueAnimator` nhấp nháy độ mờ (Alpha) của Ngôi sao trong 500ms để "Ép xung" Card đồ họa, ép HyperOS phải nhả khung hình (Fix lỗi kẹt "Đang nháy máy"). Có khóa an toàn 2.5s chống đứng máy.
+* **`CropActivity.kt` & `CropOverlayView.kt`:** * *Vai trò:* Màn hình và công cụ để người dùng đục lỗ (PorterDuff.Mode.CLEAR) lấy khung chọn sơ bộ đầu tiên trên tấm nền ảnh full màn hình.
+* **`CropPreviewActivity.kt` & `CropAdjustView.kt`:**
+  * *Vai trò:* Trạm điều khiển cuối cùng. Chứa Cỗ máy cắt chuyên nghiệp `CropAdjustView` (tính toán tọa độ dời 4 mép, vẽ 4 góc Bracket trắng đè ngoài, crop ảnh theo thời gian thực).
+  * *Logic OCR:* Gọi `TextRecognition` từ Google ML Kit mỗi khi ảnh mới được xác nhận cắt.
+  * *Logic Thoát (UX):* Dùng `CropActivity.instance?.finish()` và `finish()` để đóng màn hình êm ái, KHÔNG dùng `finishAffinity()` để bảo toàn mạng sống cho `FloatingService`.
 
-### 🚧 Đang Xử Lý (In Progress)
-- [ ] **Chụp và đúc ảnh (VirtualDisplay & ImageReader):** - Đang tối ưu hóa luồng chụp ảnh trên các dòng máy Trung Quốc (HyperOS/MIUI) chạy Android 14.
-    - Xử lý vấn đề kích thước màn hình lẻ và cơ chế cấp quyền Foreground Service nghiêm ngặt của Xiaomi.
+## 3. Các Bug "Sát thủ" đã tiêu diệt
+1. **Lỗi lặp Toast & Chụp dính Menu:** Giải quyết bằng Cờ (Flags), Khóa an toàn (`isCaptureProcessing`) và Delay 300ms.
+2. **Lỗi "Hình vuông đen" khi ấn Back:** Tắt Hardware Acceleration (`LAYER_TYPE_SOFTWARE`) cho Custom View và viết hàm `reset()`.
+3. **Lỗi màn hình lười (Lazy Display) của Xiaomi HyperOS:** Xử lý bằng kỹ thuật "Ép xung" tàng hình (Alpha Animator).
+4. **Lỗi Ngôi sao tàng hình & Chết yểu:** Chuyển từ cơ chế `finishAffinity` sang "đóng thủ công" từng Activity. Đăng ký `projectionCallback` để lắng nghe khi hệ thống tịch thu quyền.
+5. **Lỗi UX Cắt ảnh lơ lửng:** Nâng cấp từ các nút vẽ đè chắp vá thành một Custom View (`CropAdjustView`) xử lý hình học và tọa độ `RectF` tiêu chuẩn.
 
-## 📍 Giai Đoạn 2 (Sắp tới): Đóng Băng & Cắt Ảnh (Freeze & Crop)
-- Chuyển Bitmap vừa chụp sang một Activity mới làm hình nền.
-- Viết custom View (Canvas) để vẽ khung hình chữ nhật cắt điểm ảnh theo tọa độ ngón tay.
+## 4. Công việc tiếp theo
+* [ ] **Tích hợp FileProvider:** Hoàn thiện tính năng của nút `📤 SHARE` để có thể chia sẻ trực tiếp bức ảnh cắt sang Zalo/Messenger một cách an toàn (tránh lỗi bảo mật `FileUriExposedException` của Android).
+* [ ] **Kiểm tra UI/UX tổng thể:** Tinh chỉnh padding, margin, màu sắc nếu cần.
+* [ ] **Tối ưu hóa tài nguyên (Refactor Code):** Dọn dẹp code rác, cắm thêm Try/Catch ở những điểm nhạy cảm.
+* [ ] Thêm các tính năng phụ trợ (nếu có idea mới).

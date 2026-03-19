@@ -1,17 +1,24 @@
-# 📸 SceenCap - Trợ Lý Chụp & Phân Tích Màn Hình
+# TONG QUAN DU AN: SCEENCAP
 
-## 🎯 Mục Tiêu Dự Án (Project Vision)
-SceenCap là một ứng dụng Android Tiện ích hệ thống (System Utility). Ứng dụng giải quyết "nỗi đau" của người dùng khi cần chụp, cắt và tra cứu nhanh một thông tin/hình ảnh nhỏ trên màn hình mà không muốn trải qua các bước lưu ảnh rườm rà.
+## 1. Muc tieu ung dung
+SceenCap la mot cong cu tien ich (Utility App) hoat dong duoi dang Cua so noi (Floating Widget). Ung dung giup nguoi dung giai quyet bai toan: Trich xuat thong tin (Hinh anh, Van ban) tu man hinh mot cach sieu toc ma khong lam gian doan trai nghiem su dung dien thoai va khong lam rac thu vien anh.
 
-## ✨ Tính Năng Cốt Lõi (Core Features)
-1. **Floating Assistant (Trợ lý nổi):** Một "Assistive Touch" lơ lửng trên màn hình, cho phép gọi tính năng bất cứ lúc nào (kể cả khi ở ngoài màn hình chính hay đang mở app khác).
-2. **Region Capture (Vẽ để chụp):** Đóng băng màn hình và cho phép người dùng khoanh vùng/cắt (crop) chính xác khu vực cần lấy.
-3. **Basic Editor (Chỉnh sửa nhanh):** Tích hợp công cụ xoay, lật, thêm văn bản trực tiếp.
-4. **Visual Search (Tìm kiếm thị giác):** Quét vùng ảnh vừa cắt để tìm kiếm thông tin, link mua hàng (tương tự Google Lens).
-5. **Gen AI Edit (Trợ lý AI):** Nhập prompt để AI tự động chỉnh sửa hoặc mở rộng bức ảnh (Tích hợp Gemini Canvas).
+## 2. Tinh nang Cot loi (Da hoan thien)
+* Ngoi sao Lo lung (Floating Widget): Nut goi ung dung luon noi tren man hinh, co the di chuyen va thu gon.
+* Chup anh Sieu toc (One-touch Capture): Bat tron khung hinh man hinh ngay lap tuc nho suc manh cua MediaProjection va VirtualDisplay. Vuot qua duoc co che chan khung hinh (Lazy Display) cua HyperOS/Android 14.
+* Cat anh Chuyen nghiep (Pro Crop Engine):
+  - Buoc 1: Ve nhanh de lay vung chon so bo (CropOverlayView).
+  - Buoc 2: Tinh chinh lai vung cat bang 4 goc vuong boc sat mep anh (CropAdjustView), hieu ung nen toi chuan Google Photos. Co nut "Xac nhan cat" ro rang.
+* Nhan dien chu viet (OCR - Optical Character Recognition): Tich hop Google ML Kit (chay Offline 100%). Tu dong doc va trich xuat chu viet co trong vung anh vua cat ra thanh van ban thuan (Text).
+* Hanh dong Nhanh (Quick Actions):
+  - Copy: Sao chep doan chu vua quet vao bo nho dem (Clipboard).
+  - Luu: Xuat anh da cat vao thu muc Pictures/SceenCap.
+  - Huy: Thoat tien trinh em ai, tra lai tu do cho nguoi dung, Ngoi sao van song.
+  - Share: (Dang cho tich hop FileProvider).
 
-## 🛠 Công Nghệ Sử Dụng (Tech Stack)
-- **Ngôn ngữ:** Kotlin (Native Android)
-- **Môi trường:** Android Studio, Minimum API 26, Target API 34+
-- **Core APIs:** `MediaProjection`, `VirtualDisplay`, `ImageReader`, `WindowManager`.
-- **Thiết kế UI:** XML, Material Design (Floating Bubbles).
+## 3. Ngan xep Cong nghe (Tech Stack)
+* Ngon ngu: Kotlin.
+* Quyen He thong: SYSTEM_ALERT_WINDOW (Ve de), FOREGROUND_SERVICE_MEDIA_PROJECTION (Quay man hinh ngam).
+* Loi Do hoa: Canvas, Paint, Custom Views (tinh toan toa do RectF, touch events).
+* Tri tue Nhan tao: com.google.mlkit:text-recognition:16.0.1.
+* Quan ly Vong doi: Xu ly triet de co che finish() va MediaProjection.Callback de chong tran RAM va chong bi he dieu hanh "kill" app ngam.
