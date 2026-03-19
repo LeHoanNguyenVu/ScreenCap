@@ -34,6 +34,20 @@
             android:name=".FloatingService"
             android:foregroundServiceType="mediaProjection" />
 
+        <activity
+            android:name=".CropActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:screenOrientation="portrait"
+            android:exported="false">
+        </activity>
+
+        <activity
+            android:name=".CropPreviewActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:screenOrientation="portrait"
+            android:exported="false">
+        </activity>
+
     </application>
 
 </manifest>

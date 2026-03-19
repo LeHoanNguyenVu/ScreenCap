@@ -43,6 +43,11 @@ class FloatingService : Service() {
     private var handlerThread: HandlerThread? = null
     private var backgroundHandler: Handler? = null
 
+    // --- BIẾN TOÀN CỤC CHỨA ẢNH ĐỂ TRUYỀN SANG CROP ACTIVITY ---
+    companion object {
+        var capturedBitmap: Bitmap? = null
+    }
+
     // LÁ CỜ CHỤP ẢNH: Bình thường hạ xuống, khi nào bấm nút mới phất lên
     private var takePictureFlag = false
 
@@ -162,7 +167,7 @@ class FloatingService : Service() {
                     }
                 }
 
-                // 2. Lắp đặt Camera An Ninh (Chỉ chạy đúng 1 lần duy nhất)
+                // 2. Lắp đặt Camera An Ninh
                 Handler(Looper.getMainLooper()).postDelayed({
                     setupCameraStandby()
                 }, 300)
@@ -176,7 +181,7 @@ class FloatingService : Service() {
 
     @SuppressLint("WrongConstant")
     private fun setupCameraStandby() {
-        if (mediaProjection != null) return // Đã lắp rồi thì không làm lại
+        if (mediaProjection != null) return
 
         try {
             val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
@@ -207,12 +212,12 @@ class FloatingService : Service() {
             handlerThread?.start()
             backgroundHandler = Handler(handlerThread!!.looper)
 
-            // Máy quay liên tục chớp ảnh, nhưng chúng ta chỉ rửa ảnh khi nào có cờ
+            // --- KHÚC LOGIC CHUYỂN ẢNH SANG MÀN HÌNH CẮT ĐÃ ĐƯỢC CHỈNH SỬA Ở ĐÂY ---
             imageReader?.setOnImageAvailableListener({ reader ->
                 val image = reader.acquireLatestImage()
                 if (image != null) {
                     if (takePictureFlag) {
-                        takePictureFlag = false // Hạ cờ xuống ngay lập tức để không chụp trùng
+                        takePictureFlag = false // Hạ cờ xuống
 
                         try {
                             val planes = image.planes
@@ -226,10 +231,21 @@ class FloatingService : Service() {
 
                             buffer.position(0)
                             bitmap.copyPixelsFromBuffer(buffer)
+
+                            // Tạo bức ảnh hoàn chỉnh cắt bỏ phần viền đen thừa
                             val finalBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height)
 
+                            // 1. CẤT ẢNH VÀO BIẾN COMPANION OBJECT
+                            capturedBitmap = finalBitmap
+
+                            // 2. CHUYỂN LUỒNG & GỌI MÀN HÌNH CROP MỞ LÊN
                             Handler(Looper.getMainLooper()).post {
-                                Toast.makeText(this@FloatingService, "🎉 CHỤP THÀNH CÔNG! (${finalBitmap.width}x${finalBitmap.height})", Toast.LENGTH_LONG).show()
+                                Toast.makeText(this@FloatingService, "🎉 Đã chụp! Đang mở chế độ cắt...", Toast.LENGTH_SHORT).show()
+
+                                // Khởi chạy CropActivity từ Service
+                                val intent = Intent(this@FloatingService, CropActivity::class.java)
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) // Bắt buộc phải có cờ này khi gọi từ Service
+                                startActivity(intent)
                             }
                         } catch (e: Throwable) {
                             Handler(Looper.getMainLooper()).post {
@@ -237,14 +253,14 @@ class FloatingService : Service() {
                             }
                         }
                     }
-                    // LUÔN LUÔN VỨT ẢNH CŨ ĐI ĐỂ GIẢI PHÓNG RAM
+                    // Dọn rác
                     image.close()
                 }
             }, backgroundHandler)
+            // ------------------------------------------------------------------------
 
             val flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR or DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC
 
-            // BẬT MÁY CHIẾU SÁNG LIÊN TỤC VÀ KHÔNG BAO GIỜ TẮT
             virtualDisplay = mediaProjection?.createVirtualDisplay(
                 "ScreenCapture",
                 width, height, density,
@@ -252,7 +268,10 @@ class FloatingService : Service() {
                 imageReader?.surface, null, backgroundHandler
             )
 
-            // Lắp xong camera thì tự động bấm nút chụp luôn cho lần đầu tiên
+            Handler(Looper.getMainLooper()).postDelayed({
+                captureScreen()
+            }, 1000)
+
             captureScreen()
 
         } catch (e: Throwable) {
@@ -267,15 +286,12 @@ class FloatingService : Service() {
         }
 
         Toast.makeText(this, "📸 Đang nháy máy...", Toast.LENGTH_SHORT).show()
-
-        // MA THUẬT NẰM Ở ĐÂY: Chỉ cần phất cờ lên, bức ảnh lập tức được rửa ra!
         takePictureFlag = true
     }
 
     override fun onDestroy() {
         super.onDestroy()
         if (::floatingView.isInitialized) windowManager.removeView(floatingView)
-        // Khi người dùng bấm Tắt app, ta mới dọn dẹp camera
         virtualDisplay?.release()
         imageReader?.close()
         handlerThread?.quitSafely()

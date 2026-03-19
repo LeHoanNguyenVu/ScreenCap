@@ -14,7 +14,7 @@ class CaptureActivity : ComponentActivity() {
     private val captureLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK && result.data != null) {
             // CỜ SỐ 1: BÁO CÁO LẤY THẺ BÀI THÀNH CÔNG
-            Toast.makeText(this, "🚩 Cờ 1: Lấy thẻ bài thành công!", Toast.LENGTH_SHORT).show()
+            //Toast.makeText(this, "🚩 Cờ 1: Lấy thẻ bài thành công!", Toast.LENGTH_SHORT).show()
 
             val serviceIntent = Intent(this, FloatingService::class.java).apply {
                 action = "ACTION_SAVE_TOKEN_AND_CAPTURE"
