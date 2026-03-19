@@ -48,8 +48,12 @@ class FloatingService : Service() {
         var capturedBitmap: Bitmap? = null
     }
 
-    // LÁ CỜ CHỤP ẢNH: Bình thường hạ xuống, khi nào bấm nút mới phất lên
+    // --- MA THUẬT SỬA LỖI LẶP ĐÚP TOAST ---
+    // Khóa 1: Lời yêu cầu chụp (Bình thường hạ xuống)
     private var takePictureFlag = false
+    // Khóa 2: Trạng thái đang đúc ảnh (Chặn khung hình tràn vào)
+    private var isCaptureProcessing = false
+    // ----------------------------------------
 
     override fun onBind(intent: Intent?): IBinder? { return null }
 
@@ -212,12 +216,15 @@ class FloatingService : Service() {
             handlerThread?.start()
             backgroundHandler = Handler(handlerThread!!.looper)
 
-            // --- KHÚC LOGIC CHUYỂN ẢNH SANG MÀN HÌNH CẮT ĐÃ ĐƯỢC CHỈNH SỬA Ở ĐÂY ---
             imageReader?.setOnImageAvailableListener({ reader ->
+                // Dùng acquireLatestImage để luôn lấy khung hình mới nhất, vứt bỏ các khung cũ
                 val image = reader.acquireLatestImage()
                 if (image != null) {
-                    if (takePictureFlag) {
-                        takePictureFlag = false // Hạ cờ xuống
+                    // --- NÂNG CẤP KHÓA AN TOÀN ---
+                    // Phải có Lời yêu cầu CHÙA có người đang đúc ảnh, mới cho vào
+                    if (takePictureFlag && !isCaptureProcessing) {
+                        isCaptureProcessing = true // KHÓA CỬA LẠI
+                        takePictureFlag = false // Hạ cờ xuống ngay lập tức
 
                         try {
                             val planes = image.planes
@@ -244,12 +251,16 @@ class FloatingService : Service() {
 
                                 // Khởi chạy CropActivity từ Service
                                 val intent = Intent(this@FloatingService, CropActivity::class.java)
-                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) // Bắt buộc phải có cờ này khi gọi từ Service
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 startActivity(intent)
+
+                                // MỞ KHÓA LẠI SAU KHI ĐÃ ĐIỀU HƯỚNG XONG (đảm bảo RAM ổn định)
+                                isCaptureProcessing = false
                             }
                         } catch (e: Throwable) {
                             Handler(Looper.getMainLooper()).post {
                                 Toast.makeText(this@FloatingService, "❌ Lỗi điểm ảnh: ${e.message}", Toast.LENGTH_LONG).show()
+                                isCaptureProcessing = false // Lỗi cũng phải mở khóa
                             }
                         }
                     }
@@ -257,7 +268,6 @@ class FloatingService : Service() {
                     image.close()
                 }
             }, backgroundHandler)
-            // ------------------------------------------------------------------------
 
             val flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR or DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC
 
@@ -267,10 +277,6 @@ class FloatingService : Service() {
                 flags,
                 imageReader?.surface, null, backgroundHandler
             )
-
-            Handler(Looper.getMainLooper()).postDelayed({
-                captureScreen()
-            }, 1000)
 
             captureScreen()
 
@@ -285,8 +291,16 @@ class FloatingService : Service() {
             return
         }
 
-        Toast.makeText(this, "📸 Đang nháy máy...", Toast.LENGTH_SHORT).show()
-        takePictureFlag = true
+        // Nếu đang đúc ảnh dở thì không cho xin thêm
+        if (isCaptureProcessing) return
+
+
+        // Trì hoãn 300ms để giao diện có thời gian thu cái Menu lại thành Ngôi sao
+        Handler(Looper.getMainLooper()).postDelayed({
+            Toast.makeText(this, "📸 Đang nháy máy...", Toast.LENGTH_SHORT).show()
+            takePictureFlag = true // Bắt đầu phất cờ chụp
+        }, 300)
+        // ----------------------------------------
     }
 
     override fun onDestroy() {

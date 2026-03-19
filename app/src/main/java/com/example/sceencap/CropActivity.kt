@@ -34,4 +34,13 @@ class CropActivity : AppCompatActivity() {
             finish()
         }
     }
+
+    // --- HÀM onResume ĐƯỢC ĐẶT Ở ĐÂY (Ngang hàng với onCreate) ---
+    // Hàm này sẽ tự động chạy mỗi khi bạn ấn nút Back để quay lại màn hình này
+    override fun onResume() {
+        super.onResume()
+        // Tìm Custom View và gọi lệnh reset để xóa sạch khung vẽ cũ
+        val viewCropOverlay = findViewById<CropOverlayView>(R.id.view_crop_overlay)
+        viewCropOverlay?.reset()
+    }
 }

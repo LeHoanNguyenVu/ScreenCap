@@ -42,6 +42,20 @@ class CropOverlayView @JvmOverloads constructor(
     // Hình chữ nhật đại diện cho vùng cắt
     private val cropRect = RectF()
 
+    init {
+        // Ép View vẽ bằng Software để lệnh "Cọ tẩy" (CLEAR) hoạt động mượt mà 100%
+        setLayerType(LAYER_TYPE_SOFTWARE, null)
+    }
+
+    // --- THÊM HÀM RESET NÀY ĐỂ XÓA TỌA ĐỘ CŨ KHI QUAY LẠI ---
+    fun reset() {
+        startX = 0f
+        startY = 0f
+        endX = 0f
+        endY = 0f
+        invalidate() // Vẽ lại màn hình sạch sẽ
+    }
+
     // Hàm nhận tấm ảnh nền gốc từ CropActivity
     fun setOriginalBitmap(bitmap: Bitmap) {
         this.originalBitmap = bitmap
