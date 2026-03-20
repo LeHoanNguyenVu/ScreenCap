@@ -156,15 +156,34 @@ class CropPreviewActivity : AppCompatActivity() {
 
     private fun shareImage(bitmap: Bitmap) {
         try {
+            // 1. Lưu ảnh tạm thời vào bộ nhớ Cache
             val cachePath = File(cacheDir, "images")
             cachePath.mkdirs()
             val file = File(cachePath, "share_image.png")
             val fileOutputStream = FileOutputStream(file)
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, fileOutputStream)
             fileOutputStream.close()
-            Toast.makeText(this, "Tính năng share cần setup FileProvider", Toast.LENGTH_SHORT).show()
+
+            // 2. Tạo đường dẫn ảo (URI) an toàn thông qua FileProvider
+            val authority = "${applicationContext.packageName}.fileprovider"
+            val uri = androidx.core.content.FileProvider.getUriForFile(this, authority, file)
+
+            // 3. Gói ảnh vào Hộp thư (Intent) của Android
+            val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "image/png"
+                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                // CỰC KỲ QUAN TRỌNG: Cấp quyền đọc file tạm thời cho Zalo/Messenger
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            // 4. Mở Bảng chia sẻ mặc định của hệ điều hành
+            startActivity(android.content.Intent.createChooser(shareIntent, "Chia sẻ ảnh qua..."))
+
+            finishHome()
+
         } catch (e: Exception) {
             e.printStackTrace()
+            android.widget.Toast.makeText(this, "Lỗi chia sẻ: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
