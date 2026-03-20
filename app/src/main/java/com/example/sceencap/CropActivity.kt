@@ -1,6 +1,7 @@
 package com.example.sceencap
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.widget.ImageView
@@ -8,7 +9,6 @@ import androidx.appcompat.app.AppCompatActivity
 
 class CropActivity : AppCompatActivity() {
 
-    // --- MA THUẬT: Tạo biến toàn cục để điều khiển màn hình này từ xa ---
     companion object {
         @SuppressLint("StaticFieldLeak")
         var instance: CropActivity? = null
@@ -18,10 +18,14 @@ class CropActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_crop)
 
-        // Ghi nhận màn hình đang mở
         instance = this
 
-        // Phóng to toàn màn hình
+        // --- PHÁT LỆNH GIẤU NGÔI SAO KHI VỪA MỞ MÀN HÌNH ---
+        startService(Intent(this, FloatingService::class.java).apply {
+            action = "ACTION_HIDE_STAR"
+        })
+        // --------------------------------------------------
+
         window.setFlags(
             android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
@@ -47,7 +51,12 @@ class CropActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Dọn dẹp biến khi màn hình bị đóng để chống tràn RAM
         instance = null
+
+        // --- PHÁT LỆNH GỌI NGÔI SAO HIỆN LẠI KHI ĐÓNG MÀN HÌNH ---
+        startService(Intent(this, FloatingService::class.java).apply {
+            action = "ACTION_SHOW_STAR"
+        })
+        // ---------------------------------------------------------
     }
 }

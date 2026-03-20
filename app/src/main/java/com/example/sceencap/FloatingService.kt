@@ -38,7 +38,6 @@ class FloatingService : Service() {
     private var screenCaptureResultCode: Int = 0
     private var screenCaptureResultData: Intent? = null
 
-    // Bộ não trung tâm giữ quyền chụp
     private var mediaProjection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
     private var imageReader: ImageReader? = null
@@ -146,35 +145,53 @@ class FloatingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == "ACTION_SAVE_TOKEN_AND_CAPTURE") {
-            try {
-                screenCaptureResultCode = intent.getIntExtra("RESULT_CODE", 0)
-                @Suppress("DEPRECATION")
-                screenCaptureResultData = intent.getParcelableExtra("RESULT_DATA")
+        when (intent?.action) {
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val channel = NotificationChannel("sceencap_channel", "SceenCap", NotificationManager.IMPORTANCE_LOW)
-                    getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
-                    val notification = Notification.Builder(this, "sceencap_channel")
-                        .setContentTitle("SceenCap")
-                        .setContentText("Đang sẵn sàng chụp")
-                        .setSmallIcon(android.R.drawable.ic_menu_camera)
-                        .build()
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
-                    } else {
-                        startForeground(1, notification)
-                    }
+            "ACTION_HIDE_STAR" -> {
+                if (::floatingView.isInitialized) {
+                    floatingView.visibility = View.GONE
                 }
+            }
+            "ACTION_SHOW_STAR" -> {
+                if (::floatingView.isInitialized) {
+                    floatingView.visibility = View.VISIBLE
+                    // Đảm bảo Ngôi sao luôn ở trạng thái thu gọn khi hiện lại
+                    viewCollapsed.visibility = View.VISIBLE
+                    val viewExpanded = floatingView.findViewById<View>(R.id.view_expanded)
+                    viewExpanded?.visibility = View.GONE
+                }
+            }
+            // ------------------------------------
 
-                // Cài đặt Camera chạy ngầm liên tục
-                Handler(Looper.getMainLooper()).postDelayed({
-                    setupCameraStandby()
-                }, 300)
+            "ACTION_SAVE_TOKEN_AND_CAPTURE" -> {
+                try {
+                    screenCaptureResultCode = intent.getIntExtra("RESULT_CODE", 0)
+                    @Suppress("DEPRECATION")
+                    screenCaptureResultData = intent.getParcelableExtra("RESULT_DATA")
 
-            } catch (e: Throwable) {
-                Toast.makeText(this, "❌ Lỗi hệ thống: ${e.message}", Toast.LENGTH_LONG).show()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        val channel = NotificationChannel("sceencap_channel", "SceenCap", NotificationManager.IMPORTANCE_LOW)
+                        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+                        val notification = Notification.Builder(this, "sceencap_channel")
+                            .setContentTitle("SceenCap")
+                            .setContentText("Đang sẵn sàng chụp")
+                            .setSmallIcon(android.R.drawable.ic_menu_camera)
+                            .build()
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+                        } else {
+                            startForeground(1, notification)
+                        }
+                    }
+
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        setupCameraStandby()
+                    }, 300)
+
+                } catch (e: Throwable) {
+                    Toast.makeText(this, "❌ Lỗi hệ thống: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
         }
         return START_NOT_STICKY
@@ -211,7 +228,6 @@ class FloatingService : Service() {
             if (width % 2 != 0) width -= 1
             if (height % 2 != 0) height -= 1
 
-            // Giữ ImageReader chạy liên tục
             imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
 
             handlerThread = HandlerThread("ScreenCapture")
@@ -222,7 +238,6 @@ class FloatingService : Service() {
                 try {
                     val image = reader.acquireLatestImage()
                     if (image != null) {
-                        // Nếu đang bấm chụp thì hốt ảnh
                         if (takePictureFlag && !isCaptureProcessing) {
                             isCaptureProcessing = true
                             takePictureFlag = false
@@ -257,7 +272,6 @@ class FloatingService : Service() {
                                 }
                             }
                         }
-                        // Bắt buộc đóng ảnh liên tục để làm nhẹ RAM
                         image.close()
                     }
                 } catch (e: Exception) {
@@ -289,30 +303,30 @@ class FloatingService : Service() {
 
         if (isCaptureProcessing) return
 
-        // Đợi 300ms cho Menu thu lại
+        // Chờ 300ms cho Menu thu lại gọn gàng
         Handler(Looper.getMainLooper()).postDelayed({
+
             Toast.makeText(this, "📸 Đang nháy máy...", Toast.LENGTH_SHORT).show()
             takePictureFlag = true
 
-            // --- TUYỆT CHIÊU ÉP XUNG AN TOÀN TUYỆT ĐỐI ---
-            // Chỉ nhấp nháy độ mờ (alpha) của toàn bộ View từ 1.0 -> 0.9 -> 1.0
-            // Đảm bảo không làm mất màu hay hình ảnh của Ngôi sao!
-            val animator = android.animation.ValueAnimator.ofFloat(1f, 0.9f, 1f)
+            // ==========================================
+
+            val animator = android.animation.ValueAnimator.ofFloat(1f, 0.99f, 1f)
             animator.duration = 400
             animator.addUpdateListener {
                 floatingView.alpha = it.animatedValue as Float
             }
             animator.start()
-            // ---------------------------------------------
+            // ==========================================
 
-            // KHÓA AN TOÀN: Nếu sau 2.5s mà không nhả ảnh, reset cờ
+            // Khóa an toàn 3s
             Handler(Looper.getMainLooper()).postDelayed({
                 if (takePictureFlag) {
                     takePictureFlag = false
                     isCaptureProcessing = false
-                    Toast.makeText(this, "⚠️ Màn hình đang ngủ sâu, vui lòng bấm chụp lại!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "⚠️ Màn hình quá lười, thử lại nhé!", Toast.LENGTH_SHORT).show()
                 }
-            }, 2500)
+            }, 3000)
 
         }, 300)
     }

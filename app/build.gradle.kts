@@ -45,4 +45,6 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("com.google.mlkit:language-id:17.0.5")
+    implementation("com.google.mlkit:translate:17.0.2")
 }
