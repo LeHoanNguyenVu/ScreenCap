@@ -173,13 +173,30 @@ class CropPreviewActivity : AppCompatActivity() {
         btnTranslate.text = "⏳..."
 
         val languageIdentifier = LanguageIdentification.getClient()
-        languageIdentifier.identifyLanguage(textToTranslate)
-            .addOnSuccessListener { languageCode ->
-                if (languageCode == "und" || languageCode == TranslateLanguage.VIETNAMESE) {
-                    Toast.makeText(this, "Văn bản này đã là tiếng Việt hoặc không rõ!", Toast.LENGTH_SHORT).show()
+
+        // Quét ra toàn bộ các ngôn ngữ có khả năng xuất hiện trong đoạn chữ
+        languageIdentifier.identifyPossibleLanguages(textToTranslate)
+            .addOnSuccessListener { identifiedLanguages ->
+
+                // 1. KIỂM TRA NGẶT NGHÈO: Có dính dáng đến Tiếng Việt không?
+                val hasVietnamese = identifiedLanguages.any { it.languageTag == TranslateLanguage.VIETNAMESE }
+
+                if (hasVietnamese) {
+                    // Nếu có Tiếng Việt -> Chặn ngay lập tức để bảo vệ UX
+                    Toast.makeText(this, "Văn bản có lẫn Tiếng Việt, Hãy cắt sát vào vùng chữ ngoại ngữ nhé.", Toast.LENGTH_LONG).show()
                     resetTranslateButton()
                 } else {
-                    downloadModelAndTranslate(languageCode, textToTranslate)
+                    // 2. NẾU SẠCH SẼ (Không có Tiếng Việt) -> Tìm ngôn ngữ gốc để dịch
+                    var sourceLangCode = identifiedLanguages.firstOrNull {
+                        it.languageTag != "und"
+                    }?.languageTag
+
+                    if (sourceLangCode == null) {
+                        sourceLangCode = TranslateLanguage.ENGLISH
+                    }
+
+                    // Chuyển hàng vào lò dịch
+                    downloadModelAndTranslate(sourceLangCode, textToTranslate)
                 }
             }
             .addOnFailureListener {
