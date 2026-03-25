@@ -33,6 +33,9 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.io.File
 import java.io.FileOutputStream
+import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
+import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
+import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
 
 class CropPreviewActivity : AppCompatActivity() {
 
@@ -46,6 +49,7 @@ class CropPreviewActivity : AppCompatActivity() {
     private lateinit var btnCopyTranslated: Button
     private lateinit var tvScannedText: TextView
     private lateinit var edtAiPrompt: EditText
+    private lateinit var tvFuriganaWarning: TextView
 
     // ĐIỂM NHẤN UX: TẤM BẢNG HELP DESCRIPTION
     private lateinit var tvHelpDescription: TextView
@@ -69,6 +73,7 @@ class CropPreviewActivity : AppCompatActivity() {
         val btnScanText = findViewById<Button>(R.id.btn_scan_text)
         val layoutTextResult = findViewById<LinearLayout>(R.id.layout_text_result)
         tvScannedText = findViewById(R.id.tv_scanned_text)
+        tvFuriganaWarning = findViewById(R.id.tv_furigana_warning)
 
         btnTranslate = findViewById(R.id.btn_translate)
         btnCopyOriginal = findViewById(R.id.btn_copy_original)
@@ -173,7 +178,13 @@ class CropPreviewActivity : AppCompatActivity() {
         // ----------------------------------------------------------------
 
         btnScanText.setOnClickListener {
-            startOcrFromBitmap(currentCroppedBitmap!!, layoutTextResult, tvScannedText, btnScanText)
+            val languages = arrayOf("🇺🇸 Tiếng Anh / Latinh", "🇯🇵 Tiếng Nhật", "🇨🇳 Tiếng Trung", "🇰🇷 Tiếng Hàn")
+            android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle("Chọn ngôn ngữ văn bản trong ảnh:")
+                .setItems(languages) { _, which ->
+                    startOcrFromBitmap(currentCroppedBitmap!!, layoutTextResult, tvScannedText, btnScanText, which)
+                }
+                .show()
         }
 
         btnCopyOriginal.setOnClickListener {
@@ -279,21 +290,39 @@ class CropPreviewActivity : AppCompatActivity() {
         finishHome()
     }
 
-    private fun startOcrFromBitmap(bitmap: Bitmap, layoutResult: LinearLayout, tvResult: TextView, btnScan: Button) {
+    private fun startOcrFromBitmap(bitmap: Bitmap, layoutResult: LinearLayout, tvResult: TextView, btnScan: Button, languageMode: Int) {
         btnScan.isEnabled = false
         btnScan.text = "⏳..."
+
         btnTranslate.visibility = View.VISIBLE
         btnTranslate.text = "🌐 DỊCH (VI)"
         btnTranslate.isEnabled = true
         btnCopyTranslated.visibility = View.GONE
+
         rawOriginalText = ""
         rawTranslatedText = ""
+
+        if (languageMode == 1) {
+            tvFuriganaWarning.visibility = View.VISIBLE
+        } else {
+            tvFuriganaWarning.visibility = View.GONE
+        }
+
         val image = InputImage.fromBitmap(bitmap, 0)
-        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
+        val recognizerOptions = when (languageMode) {
+            1 -> JapaneseTextRecognizerOptions.Builder().build()
+            2 -> ChineseTextRecognizerOptions.Builder().build()
+            3 -> KoreanTextRecognizerOptions.Builder().build()
+            else -> TextRecognizerOptions.DEFAULT_OPTIONS // Mặc định là Tiếng Anh/Latinh
+        }
+        val recognizer = TextRecognition.getClient(recognizerOptions)
+
         recognizer.process(image)
             .addOnSuccessListener { visionText ->
                 btnScan.isEnabled = true
                 btnScan.text = "📝 QUÉT"
+
                 val resultText = visionText.text
                 if (resultText.trim().isEmpty()) {
                     tvResult.text = ""
@@ -308,6 +337,8 @@ class CropPreviewActivity : AppCompatActivity() {
             .addOnFailureListener { e ->
                 btnScan.isEnabled = true
                 btnScan.text = "📝 QUÉT"
+                Toast.makeText(this, "Lỗi quét chữ: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.e("SceenCap_OCR", "Failure: ${e.message}")
             }
     }
 
