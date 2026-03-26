@@ -36,6 +36,11 @@ import java.io.FileOutputStream
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
+import android.net.Uri
+import android.app.AlertDialog
 
 class CropPreviewActivity : AppCompatActivity() {
 
@@ -63,6 +68,8 @@ class CropPreviewActivity : AppCompatActivity() {
         val btnSave = findViewById<Button>(R.id.btn_save)
         val btnShare = findViewById<Button>(R.id.btn_share)
         val btnSearchImage = findViewById<Button>(R.id.btn_search_image)
+        val btnScanQr = findViewById<Button>(R.id.btn_scan_qr)
+        btnScanQr.setOnClickListener { scanQrBarcode(currentCroppedBitmap!!) }
 
         val btnAiEdit = findViewById<Button>(R.id.btn_ai_edit)
         val layoutAiEditDialog = findViewById<LinearLayout>(R.id.layout_ai_edit_dialog)
@@ -469,5 +476,74 @@ class CropPreviewActivity : AppCompatActivity() {
             val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.hideSoftInputFromWindow(it.windowToken, 0)
         }
+    }
+
+    private fun scanQrBarcode(bitmap: Bitmap) {
+        Toast.makeText(this, "🔍 Đang phân tích mã...", Toast.LENGTH_SHORT).show()
+        val image = InputImage.fromBitmap(bitmap, 0)
+
+        // Cấu hình quét tất cả các định dạng mã trên đời
+        val options = BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+            .build()
+
+        val scanner = BarcodeScanning.getClient(options)
+
+        scanner.process(image)
+            .addOnSuccessListener { barcodes ->
+                if (barcodes.isEmpty()) {
+                    Toast.makeText(this, "Không tìm thấy mã QR/Barcode nào trong ảnh!", Toast.LENGTH_SHORT).show()
+                    return@addOnSuccessListener
+                }
+                // Chỉ lấy mã đầu tiên tìm thấy để xử lý
+                val barcode = barcodes[0]
+                handleBarcodeResult(barcode)
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Lỗi quét mã: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun handleBarcodeResult(barcode: Barcode) {
+        val rawValue = barcode.rawValue ?: "Không đọc được dữ liệu"
+        val valueType = barcode.valueType
+
+        val dialogBuilder = AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+        dialogBuilder.setTitle("Kết quả quét mã:")
+
+        // Xử lý Smart Actions dựa trên loại dữ liệu
+        when (valueType) {
+            Barcode.TYPE_URL -> {
+                val url = barcode.url?.url ?: rawValue
+                dialogBuilder.setMessage("🔗 Liên kết Web:\n$url")
+                dialogBuilder.setPositiveButton("MỞ TRÌNH DUYỆT") { _, _ ->
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    startActivity(intent)
+                }
+            }
+            Barcode.TYPE_WIFI -> {
+                val ssid = barcode.wifi?.ssid ?: "Không rõ"
+                val password = barcode.wifi?.password ?: "Không có pass"
+                dialogBuilder.setMessage("📶 Mạng Wi-Fi: $ssid\n🔑 Mật khẩu: $password")
+                dialogBuilder.setPositiveButton("COPY PASS") { _, _ ->
+                    copyToClipboard(password, "Đã copy mật khẩu Wi-Fi!")
+                }
+            }
+            else -> {
+                // Mã vạch sản phẩm (EAN/UPC) hoặc đoạn text bình thường chứa trong QR
+                dialogBuilder.setMessage("📄 Nội dung:\n$rawValue")
+                dialogBuilder.setPositiveButton("TÌM GOOGLE") { _, _ ->
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=$rawValue"))
+                    startActivity(intent)
+                }
+            }
+        }
+
+        // Nút chung cho mọi trường hợp
+        dialogBuilder.setNeutralButton("COPY TẤT CẢ") { _, _ ->
+            copyToClipboard(rawValue, "Đã copy toàn bộ nội dung mã!")
+        }
+        dialogBuilder.setNegativeButton("ĐÓNG", null)
+        dialogBuilder.show()
     }
 }

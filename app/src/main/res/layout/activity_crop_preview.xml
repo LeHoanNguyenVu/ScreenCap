@@ -261,6 +261,16 @@
                 android:visibility="gone"
                 android:background="@drawable/shape_button_rounded"
                 android:backgroundTint="#2A2A2A" />
+
+            <Button
+                android:id="@+id/btn_scan_qr"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🔳 QUÉT MÃ QR / BARCODE"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp"
+                android:backgroundTint="#00BCD4"
+                android:background="@drawable/shape_button_rounded"/>
         </LinearLayout>
 
         <LinearLayout
