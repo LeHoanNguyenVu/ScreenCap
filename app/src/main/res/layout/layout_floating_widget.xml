@@ -1,47 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/widget_root"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:padding="8dp">
 
+    <!-- Ngôi sao khi thu gọn -->
     <ImageView
         android:id="@+id/view_collapsed"
         android:layout_width="60dp"
         android:layout_height="60dp"
-        android:layout_gravity="bottom|center_horizontal"
+        android:layout_gravity="center"
         android:background="@android:drawable/btn_star_big_on"
-        android:elevation="5dp" />
+        android:elevation="8dp" />
 
+    <!-- Menu khi mở rộng -->
     <LinearLayout
         android:id="@+id/view_expanded"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:gravity="center_horizontal"
+        android:gravity="center"
         android:visibility="gone"
-        android:background="@android:color/transparent">
+        android:padding="4dp">
 
-        <TextView
-            android:id="@+id/btn_close"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:background="@drawable/bg_bubble"
-            android:gravity="center"
-            android:text="❌"
-            android:textSize="20sp"
-            android:elevation="5dp"
-            android:layout_marginBottom="12dp"/>
-
+        <!-- Nút Chụp -->
         <TextView
             android:id="@+id/btn_capture"
             android:layout_width="56dp"
             android:layout_height="56dp"
-            android:background="@drawable/bg_bubble"
             android:gravity="center"
-            android:text="📸"
+            android:text="📱"
+            android:textSize="28sp"
+            android:background="@drawable/bg_bubble"
+            android:elevation="6dp"
+            android:layout_marginBottom="12dp"/>
+
+        <!-- Nút Quét QR (Dùng Icon Vector mới tạo) -->
+        <FrameLayout
+            android:id="@+id/btn_menu_qr"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_bubble"
+            android:elevation="6dp"
+            android:layout_marginBottom="12dp">
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_qr_code"
+                app:tint="#000000" />
+        </FrameLayout>
+
+        <!-- Nút Hủy -->
+        <TextView
+            android:id="@+id/btn_close"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:gravity="center"
+            android:text="❌"
             android:textSize="24sp"
-            android:elevation="5dp"/>
+            android:background="@drawable/bg_bubble"
+            android:elevation="6dp"/>
     </LinearLayout>
 
 </FrameLayout>

@@ -2,14 +2,39 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:gravity="center"
-    android:orientation="vertical">
+    android:background="#111111"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SceenCap"
+        android:textColor="#FFFFFF"
+        android:textSize="36sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="48dp"/>
 
     <Button
         android:id="@+id/btn_start_service"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Bật nút chụp màn hình"
-        android:textSize="18sp" />
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="⭐ BẬT NGÔI SAO SÁNG"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:backgroundTint="#FF9800"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/shape_button_rounded"/>
+
+    <Button
+        android:id="@+id/btn_open_scanner"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="📷 QUÉT MÃ TRỰC TIẾP"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:backgroundTint="#4CAF50"
+        android:background="@drawable/shape_button_rounded"/>
 
 </LinearLayout>

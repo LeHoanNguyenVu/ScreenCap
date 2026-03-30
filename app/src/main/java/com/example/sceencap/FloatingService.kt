@@ -1,6 +1,7 @@
 package com.example.sceencap
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -20,6 +21,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.IBinder
 import android.os.Looper
+import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -34,6 +36,7 @@ class FloatingService : Service() {
     private lateinit var floatingView: View
     private lateinit var windowParams: WindowManager.LayoutParams
     private lateinit var viewCollapsed: View
+    private lateinit var viewExpanded: View
 
     private var screenCaptureResultCode: Int = 0
     private var screenCaptureResultData: Intent? = null
@@ -57,12 +60,31 @@ class FloatingService : Service() {
     override fun onCreate() {
         super.onCreate()
 
+        // Khởi động Foreground Service ở chế độ specialUse để duy trì ngôi sao
+        createNotificationChannel()
+        val notification = createNotification("ScreenApp đang sẵn sàng")
+        
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                // Android 14+ yêu cầu specialUse nếu không phải mediaProjection ngay lập tức
+                startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            } else {
+                startForeground(1, notification)
+            }
+        } catch (e: Exception) {
+            // Fallback nếu có lỗi quyền
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(1, notification)
+            }
+        }
+
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         floatingView = LayoutInflater.from(this).inflate(R.layout.layout_floating_widget, null)
 
         viewCollapsed = floatingView.findViewById(R.id.view_collapsed)
-        val viewExpanded = floatingView.findViewById<View>(R.id.view_expanded)
+        viewExpanded = floatingView.findViewById(R.id.view_expanded)
         val btnCapture = floatingView.findViewById<View>(R.id.btn_capture)
+        val btnQr = floatingView.findViewById<View>(R.id.btn_menu_qr)
         val btnClose = floatingView.findViewById<View>(R.id.btn_close)
 
         windowParams = WindowManager.LayoutParams(
@@ -128,7 +150,9 @@ class FloatingService : Service() {
             }
         }
 
-        btnClose.setOnClickListener { stopSelf() }
+        btnClose.setOnClickListener {
+            showExitConfirmationDialog()
+        }
 
         btnCapture.setOnClickListener {
             viewExpanded.visibility = View.GONE
@@ -142,47 +166,87 @@ class FloatingService : Service() {
                 captureScreen()
             }
         }
+
+        btnQr.setOnClickListener {
+            viewExpanded.visibility = View.GONE
+            viewCollapsed.visibility = View.VISIBLE
+            floatingView.visibility = View.GONE // Ẩn ngôi sao trực tiếp
+            
+            val intent = Intent(this, ScannerActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        }
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel("sceencap_channel", "SceenCap Service", NotificationManager.IMPORTANCE_LOW)
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun createNotification(text: String): Notification {
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, "sceencap_channel")
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+        }
+        return builder
+            .setContentTitle("SceenCap")
+            .setContentText(text)
+            .setSmallIcon(android.R.drawable.ic_menu_camera)
+            .build()
+    }
+
+    private fun showExitConfirmationDialog() {
+        val builder = AlertDialog.Builder(ContextThemeWrapper(this, android.R.style.Theme_DeviceDefault_Dialog_Alert))
+        builder.setTitle("Xác nhận")
+        builder.setMessage("Bạn có chắc muốn tắt ScreenApp?")
+        
+        builder.setPositiveButton("Tắt") { _, _ ->
+            stopSelf()
+        }
+        
+        builder.setNegativeButton("Hủy") { dialog, _ ->
+            viewExpanded.visibility = View.GONE
+            viewCollapsed.visibility = View.VISIBLE
+            dialog.dismiss()
+        }
+
+        val dialog = builder.create()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
+        } else {
+            @Suppress("DEPRECATION")
+            dialog.window?.setType(WindowManager.LayoutParams.TYPE_PHONE)
+        }
+        dialog.show()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-
             "ACTION_HIDE_STAR" -> {
-                if (::floatingView.isInitialized) {
-                    floatingView.visibility = View.GONE
-                }
+                if (::floatingView.isInitialized) floatingView.visibility = View.GONE
             }
             "ACTION_SHOW_STAR" -> {
                 if (::floatingView.isInitialized) {
                     floatingView.visibility = View.VISIBLE
-                    // Đảm bảo Ngôi sao luôn ở trạng thái thu gọn khi hiện lại
                     viewCollapsed.visibility = View.VISIBLE
-                    val viewExpanded = floatingView.findViewById<View>(R.id.view_expanded)
-                    viewExpanded?.visibility = View.GONE
+                    viewExpanded.visibility = View.GONE
                 }
             }
-            // ------------------------------------
-
             "ACTION_SAVE_TOKEN_AND_CAPTURE" -> {
                 try {
                     screenCaptureResultCode = intent.getIntExtra("RESULT_CODE", 0)
                     @Suppress("DEPRECATION")
                     screenCaptureResultData = intent.getParcelableExtra("RESULT_DATA")
 
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        val channel = NotificationChannel("sceencap_channel", "SceenCap", NotificationManager.IMPORTANCE_LOW)
-                        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
-                        val notification = Notification.Builder(this, "sceencap_channel")
-                            .setContentTitle("SceenCap")
-                            .setContentText("Đang sẵn sàng chụp")
-                            .setSmallIcon(android.R.drawable.ic_menu_camera)
-                            .build()
-
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
-                        } else {
-                            startForeground(1, notification)
-                        }
+                    // Chuyển sang chế độ MediaProjection khi đã có quyền
+                    val notification = createNotification("Đang sẵn sàng chụp")
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
                     }
 
                     Handler(Looper.getMainLooper()).postDelayed({
@@ -194,16 +258,13 @@ class FloatingService : Service() {
                 }
             }
         }
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
     private val projectionCallback = object : MediaProjection.Callback() {
         override fun onStop() {
             super.onStop()
             tearDownAll()
-            Handler(Looper.getMainLooper()).post {
-                Toast.makeText(applicationContext, "⚠️ Quyền chụp màn hình đã hết hạn. Vui lòng bật lại app!", Toast.LENGTH_LONG).show()
-            }
         }
     }
 
@@ -259,7 +320,6 @@ class FloatingService : Service() {
                                 capturedBitmap = finalBitmap
 
                                 Handler(Looper.getMainLooper()).post {
-                                    Toast.makeText(this@FloatingService, "🎉 Đã chụp! Đang mở chế độ cắt...", Toast.LENGTH_SHORT).show()
                                     val intent = Intent(this@FloatingService, CropActivity::class.java)
                                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                     startActivity(intent)
@@ -267,7 +327,6 @@ class FloatingService : Service() {
                                 }
                             } catch (e: Throwable) {
                                 Handler(Looper.getMainLooper()).post {
-                                    Toast.makeText(this@FloatingService, "❌ Lỗi điểm ảnh: ${e.message}", Toast.LENGTH_LONG).show()
                                     isCaptureProcessing = false
                                 }
                             }
@@ -286,45 +345,30 @@ class FloatingService : Service() {
                 imageReader?.surface, null, backgroundHandler
             )
 
-            // Vừa cấp quyền xong là tự động bấm chụp lần 1
             captureScreen()
 
         } catch (e: Throwable) {
             tearDownAll()
-            Toast.makeText(this, "❌ Lỗi lắp Camera: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun captureScreen() {
-        if (mediaProjection == null) {
-            Toast.makeText(this, "⚠️ Máy quay chưa sẵn sàng, vui lòng bấm biểu tượng app trên màn hình chính để cấp quyền lại!", Toast.LENGTH_LONG).show()
-            return
-        }
-
+        if (mediaProjection == null) return
         if (isCaptureProcessing) return
 
-        // Chờ 300ms cho Menu thu lại gọn gàng
         Handler(Looper.getMainLooper()).postDelayed({
-
-            Toast.makeText(this, "📸 Đang nháy máy...", Toast.LENGTH_SHORT).show()
             takePictureFlag = true
-
-            // ==========================================
-
             val animator = android.animation.ValueAnimator.ofFloat(1f, 0.99f, 1f)
             animator.duration = 400
             animator.addUpdateListener {
                 floatingView.alpha = it.animatedValue as Float
             }
             animator.start()
-            // ==========================================
 
-            // Khóa an toàn 3s
             Handler(Looper.getMainLooper()).postDelayed({
                 if (takePictureFlag) {
                     takePictureFlag = false
                     isCaptureProcessing = false
-                    Toast.makeText(this, "⚠️ Màn hình quá lười, thử lại nhé!", Toast.LENGTH_SHORT).show()
                 }
             }, 3000)
 

@@ -5,7 +5,11 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -32,21 +36,29 @@
 
         <service
             android:name=".FloatingService"
-            android:foregroundServiceType="mediaProjection" />
+            android:foregroundServiceType="specialUse|mediaProjection"
+            android:exported="false">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_TYPE"
+                android:value="Floating menu for screen capture and QR scanning utility" />
+        </service>
 
         <activity
             android:name=".CropActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar"
             android:screenOrientation="portrait"
-            android:exported="false">
-        </activity>
+            android:exported="false" />
 
         <activity
             android:name=".CropPreviewActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar"
             android:screenOrientation="portrait"
-            android:exported="false">
-        </activity>
+            android:exported="false" />
+
+        <activity
+            android:name=".ScannerActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:screenOrientation="portrait"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
