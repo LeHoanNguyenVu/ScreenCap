@@ -21,6 +21,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.IBinder
 import android.os.Looper
+import android.util.DisplayMetrics
 import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -28,6 +29,9 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.core.app.NotificationCompat
+import androidx.core.graphics.applyCanvas
+import androidx.core.graphics.createBitmap
 import kotlin.math.abs
 
 class FloatingService : Service() {
@@ -60,22 +64,17 @@ class FloatingService : Service() {
     override fun onCreate() {
         super.onCreate()
 
-        // Khởi động Foreground Service ở chế độ specialUse để duy trì ngôi sao
         createNotificationChannel()
         val notification = createNotification("ScreenApp đang sẵn sàng")
         
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                // Android 14+ yêu cầu specialUse nếu không phải mediaProjection ngay lập tức
                 startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
             } else {
                 startForeground(1, notification)
             }
-        } catch (e: Exception) {
-            // Fallback nếu có lỗi quyền
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(1, notification)
-            }
+        } catch (ignored: Exception) {
+            startForeground(1, notification)
         }
 
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -90,7 +89,7 @@ class FloatingService : Service() {
         windowParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )
@@ -107,7 +106,7 @@ class FloatingService : Service() {
         var initialTouchY = 0f
         var isMoved = false
 
-        viewCollapsed.setOnTouchListener { _, event ->
+        viewCollapsed.setOnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initialX = windowParams.x
@@ -130,6 +129,7 @@ class FloatingService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     if (!isMoved) {
+                        v.performClick()
                         viewCollapsed.visibility = View.GONE
                         viewExpanded.visibility = View.VISIBLE
                     } else {
@@ -170,7 +170,7 @@ class FloatingService : Service() {
         btnQr.setOnClickListener {
             viewExpanded.visibility = View.GONE
             viewCollapsed.visibility = View.VISIBLE
-            floatingView.visibility = View.GONE // Ẩn ngôi sao trực tiếp
+            floatingView.visibility = View.GONE
             
             val intent = Intent(this, ScannerActivity::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -182,21 +182,16 @@ class FloatingService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel("sceencap_channel", "SceenCap Service", NotificationManager.IMPORTANCE_LOW)
             val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+            manager?.createNotificationChannel(channel)
         }
     }
 
     private fun createNotification(text: String): Notification {
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, "sceencap_channel")
-        } else {
-            @Suppress("DEPRECATION")
-            Notification.Builder(this)
-        }
-        return builder
+        return NotificationCompat.Builder(this, "sceencap_channel")
             .setContentTitle("SceenCap")
             .setContentText(text)
             .setSmallIcon(android.R.drawable.ic_menu_camera)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
     }
 
@@ -216,12 +211,7 @@ class FloatingService : Service() {
         }
 
         val dialog = builder.create()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
-        } else {
-            @Suppress("DEPRECATION")
-            dialog.window?.setType(WindowManager.LayoutParams.TYPE_PHONE)
-        }
+        dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
         dialog.show()
     }
 
@@ -243,18 +233,22 @@ class FloatingService : Service() {
                     @Suppress("DEPRECATION")
                     screenCaptureResultData = intent.getParcelableExtra("RESULT_DATA")
 
-                    // Chuyển sang chế độ MediaProjection khi đã có quyền
                     val notification = createNotification("Đang sẵn sàng chụp")
+                    val manager = getSystemService(NotificationManager::class.java)
+                    manager?.notify(1, notification)
+
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+                    } else {
+                        startForeground(1, notification)
                     }
 
                     Handler(Looper.getMainLooper()).postDelayed({
                         setupCameraStandby()
                     }, 300)
 
-                } catch (e: Throwable) {
-                    Toast.makeText(this, "❌ Lỗi hệ thống: ${e.message}", Toast.LENGTH_LONG).show()
+                } catch (ignored: Throwable) {
+                    Toast.makeText(this, "❌ Lỗi hệ thống", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -273,14 +267,15 @@ class FloatingService : Service() {
         if (mediaProjection != null) return
 
         try {
-            val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            val projectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
             mediaProjection = projectionManager.getMediaProjection(screenCaptureResultCode, screenCaptureResultData!!)
             mediaProjection?.registerCallback(projectionCallback, null)
 
-            val displayManager = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
-            val display = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY)
-            val metrics = android.util.DisplayMetrics()
-            display.getRealMetrics(metrics)
+            val displayManager = getSystemService(DISPLAY_SERVICE) as DisplayManager
+            val metrics = DisplayMetrics()
+            
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay.getRealMetrics(metrics)
 
             var width = metrics.widthPixels
             var height = metrics.heightPixels
@@ -311,13 +306,12 @@ class FloatingService : Service() {
                                 val rowPadding = rowStride - pixelStride * width
 
                                 val bitmapWidth = width + rowPadding / pixelStride
-                                val bitmap = Bitmap.createBitmap(bitmapWidth, height, Bitmap.Config.ARGB_8888)
+                                val bitmap = createBitmap(bitmapWidth, height, Bitmap.Config.ARGB_8888)
 
                                 buffer.position(0)
                                 bitmap.copyPixelsFromBuffer(buffer)
 
-                                val finalBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height)
-                                capturedBitmap = finalBitmap
+                                capturedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height)
 
                                 Handler(Looper.getMainLooper()).post {
                                     val intent = Intent(this@FloatingService, CropActivity::class.java)
@@ -325,7 +319,7 @@ class FloatingService : Service() {
                                     startActivity(intent)
                                     isCaptureProcessing = false
                                 }
-                            } catch (e: Throwable) {
+                            } catch (ignored: Throwable) {
                                 Handler(Looper.getMainLooper()).post {
                                     isCaptureProcessing = false
                                 }
@@ -333,8 +327,7 @@ class FloatingService : Service() {
                         }
                         image.close()
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                } catch (ignored: Exception) {
                 }
             }, backgroundHandler)
 
@@ -347,7 +340,7 @@ class FloatingService : Service() {
 
             captureScreen()
 
-        } catch (e: Throwable) {
+        } catch (ignored: Throwable) {
             tearDownAll()
         }
     }
