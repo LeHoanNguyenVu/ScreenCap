@@ -1,27 +1,38 @@
 # 🚀 TIẾN ĐỘ & QUY TRÌNH CODE: SCEENCAP
 
-## 1. Trạng thái hiện tại: Đã hoàn thiện 90% Core Flow
-Dự án đã có thể chạy mượt mà một vòng đời hoàn chỉnh (End-to-End Flow):
-`Lướt web -> Bấm Ngôi sao -> Bấm Chụp -> Vẽ khung sơ bộ -> Tinh chỉnh khung 4 góc -> Xác nhận -> Quét chữ (OCR) -> Lưu/Copy -> Trở về lướt web (Ngôi sao sống sót).`
+## 1. Trạng thái hiện tại: Đã hoàn thiện 99% Core Flow & Rich Features
+Dự án đã cực kỳ ổn định. Toàn bộ các kênh chia sẻ dữ liệu ra bên ngoài (Share, AI, Lens) đã được gia cố bảo mật và cấp quyền đúng chuẩn Android mới nhất.
 
-## 2. Cấu trúc File Logic (Cập nhật mới nhất)
-* **`FloatingService.kt`:** * *Vai trò:* Trái tim của ứng dụng. Quản lý Ngôi sao nổi và Lõi Máy quay (`MediaProjection`, `VirtualDisplay`, `ImageReader`).
-  * *Tuyệt chiêu:* Giữ máy quay thường trực. Sử dụng `ValueAnimator` nhấp nháy độ mờ (Alpha) của Ngôi sao trong 500ms để "Ép xung" Card đồ họa, ép HyperOS phải nhả khung hình (Fix lỗi kẹt "Đang nháy máy"). Có khóa an toàn 2.5s chống đứng máy.
-* **`CropActivity.kt` & `CropOverlayView.kt`:** * *Vai trò:* Màn hình và công cụ để người dùng đục lỗ (PorterDuff.Mode.CLEAR) lấy khung chọn sơ bộ đầu tiên trên tấm nền ảnh full màn hình.
-* **`CropPreviewActivity.kt` & `CropAdjustView.kt`:**
-  * *Vai trò:* Trạm điều khiển cuối cùng. Chứa Cỗ máy cắt chuyên nghiệp `CropAdjustView` (tính toán tọa độ dời 4 mép, vẽ 4 góc Bracket trắng đè ngoài, crop ảnh theo thời gian thực).
-  * *Logic OCR:* Gọi `TextRecognition` từ Google ML Kit mỗi khi ảnh mới được xác nhận cắt.
-  * *Logic Thoát (UX):* Dùng `CropActivity.instance?.finish()` và `finish()` để đóng màn hình êm ái, KHÔNG dùng `finishAffinity()` để bảo toàn mạng sống cho `FloatingService`.
+## 2. Cấu trúc File Logic & Tính năng mới (Cập nhật)
 
-## 3. Các Bug "Sát thủ" đã tiêu diệt
-1. **Lỗi lặp Toast & Chụp dính Menu:** Giải quyết bằng Cờ (Flags), Khóa an toàn (`isCaptureProcessing`) và Delay 300ms.
-2. **Lỗi "Hình vuông đen" khi ấn Back:** Tắt Hardware Acceleration (`LAYER_TYPE_SOFTWARE`) cho Custom View và viết hàm `reset()`.
-3. **Lỗi màn hình lười (Lazy Display) của Xiaomi HyperOS:** Xử lý bằng kỹ thuật "Ép xung" tàng hình (Alpha Animator).
-4. **Lỗi Ngôi sao tàng hình & Chết yểu:** Chuyển từ cơ chế `finishAffinity` sang "đóng thủ công" từng Activity. Đăng ký `projectionCallback` để lắng nghe khi hệ thống tịch thu quyền.
-5. **Lỗi UX Cắt ảnh lơ lửng:** Nâng cấp từ các nút vẽ đè chắp vá thành một Custom View (`CropAdjustView`) xử lý hình học và tọa độ `RectF` tiêu chuẩn.
+### 🧩 Core Service
+* **`FloatingService.kt`:** 
+  - Điều phối trung tâm. Quản lý Ngôi sao nổi với hiệu ứng Animator "ép xung" đồ họa để chụp ảnh màn hình ngầm.
+  - Tích hợp thêm Menu mở rộng: Chụp ảnh (`btn_capture`) và Quét QR trực tiếp (`btn_menu_qr`).
 
-## 4. Công việc tiếp theo
-* [ ] **Tích hợp FileProvider:** Hoàn thiện tính năng của nút `📤 SHARE` để có thể chia sẻ trực tiếp bức ảnh cắt sang Zalo/Messenger một cách an toàn (tránh lỗi bảo mật `FileUriExposedException` của Android).
-* [ ] **Kiểm tra UI/UX tổng thể:** Tinh chỉnh padding, margin, màu sắc nếu cần.
-* [ ] **Tối ưu hóa tài nguyên (Refactor Code):** Dọn dẹp code rác, cắm thêm Try/Catch ở những điểm nhạy cảm.
-* [ ] Thêm các tính năng phụ trợ (nếu có idea mới).
+### 📸 Camera & Scanning
+* **`ScannerActivity.kt` (MỚI):** 
+  - Sử dụng CameraX để quét QR/Barcode thực tế từ camera sau.
+  - Hỗ trợ Flash, hiệu ứng Scan Line chạy liên tục.
+  - **Smart Actions:** Tự động nhận diện loại dữ liệu (URL -> Mở trình duyệt, Wi-Fi -> Copy Pass, Text -> Tìm Google).
+
+### 🎨 Image Processing & Intelligence (Rich Features)
+* **`CropPreviewActivity.kt`:** Hiện là trung tâm xử lý dữ liệu với các tính năng:
+  - **Đa ngôn ngữ OCR:** Không chỉ Latinh, đã hỗ trợ thêm Tiếng Nhật, Trung, Hàn thông qua Google ML Kit.
+  - **Offline Translation:** Tự động nhận diện ngôn ngữ và dịch sang Tiếng Việt ngay trong app (không cần Internet).
+  - **Quét QR từ ảnh:** Cho phép người dùng chụp/cắt một mã QR trên màn hình và giải mã ngay lập tức.
+  - **Google Lens Search:** Tích hợp sâu với Google Search App để tìm kiếm thông tin hình ảnh.
+  - **AI Edit (Gemini):** Tích hợp FileProvider để gửi ảnh và Prompt sang app Gemini, biến SceenCap thành cầu nối cho AI.
+  - **Hệ thống Help UX:** Các icon `ib_help_...` đi kèm bảng mô tả `tvHelpDescription` giúp người dùng mới dễ dàng tiếp cận tính năng.
+
+## 3. Các Bug & Rào cản đã vượt qua (Cập nhật)
+1. ✅ **FileProvider Security:** Đã cấu hình `filepaths.xml` và `FileProvider` để chia sẻ ảnh an toàn giữa các App (Zalo, Gemini, Google Lens).
+2. ✅ **Fix Lỗi Share/AI/Lens:** Đã thêm `ClipData` và gỡ bỏ `finish()` sớm để đảm quyền truy cập URI không bị ngắt quãng trên Android 13/14+.
+3. ✅ **Xử lý bộ nhớ:** Sử dụng `cacheDir` và timestamp để quản lý ảnh tạm, tránh xung đột dữ liệu.
+4. ✅ **Bàn phím đè UI:** Xử lý `dispatchTouchEvent` và `hideKeyboard` để đóng bàn phím êm ái khi người dùng chạm ra ngoài vùng nhập AI Prompt.
+5. ✅ **Furigana Handling:** Thêm cảnh báo khi quét tiếng Nhật có Furigana để người dùng chủ động điều chỉnh vùng cắt.
+
+## 4. Công việc còn lại
+* [ ] **Tối ưu hóa dung lượng:** Kiểm tra việc giải phóng bộ nhớ của `capturedBitmap` sau khi hoàn tất chu trình.
+* [ ] **Cải thiện UI/UX:** Làm đẹp hơn các Dialog thông báo kết quả QR để trông hiện đại hơn.
+* [ ] **Build & Test:** Kiểm tra độ ổn định trên các dòng máy khác nhau (Samsung OneUI, Pixel).

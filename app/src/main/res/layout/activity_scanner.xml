@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000">
+    android:background="#000000"
+    tools:ignore="UnusedResources">
 
     <androidx.camera.view.PreviewView
         android:id="@+id/viewFinder"
@@ -90,7 +93,8 @@
         android:orientation="vertical"
         android:layout_gravity="top|end"
         android:layout_margin="20dp"
-        android:gravity="center">
+        android:gravity="center"
+        tools:ignore="RelativeOverlap">
 
         <!-- Nút Đóng (Góc PHẢI trên) -->
         <ImageButton
@@ -103,10 +107,10 @@
             android:padding="12dp"
             android:scaleType="centerInside"
             android:contentDescription="Đóng Camera"
-            android:tint="#FF5252"
+            app:tint="#FF5252"
             android:layout_marginBottom="16dp"/>
 
-        <!-- Nút Đèn Flash (Sử dụng icon sấm sét mới) -->
+        <!-- Nút Đèn Flash -->
         <ImageButton
             android:id="@+id/btn_flash"
             android:layout_width="56dp"
@@ -117,7 +121,7 @@
             android:padding="12dp"
             android:scaleType="centerInside"
             android:contentDescription="Bật/Tắt Flash"
-            android:tint="#888888" />
+            app:tint="#888888"/>
     </LinearLayout>
 
     <TextView
