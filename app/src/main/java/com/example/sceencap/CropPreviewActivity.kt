@@ -23,24 +23,20 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.languageid.LanguageIdentification
-import com.google.mlkit.nl.translate.TranslateLanguage
-import com.google.mlkit.nl.translate.Translation
-import com.google.mlkit.nl.translate.TranslatorOptions
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import java.io.File
-import java.io.FileOutputStream
-import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
-import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
-import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
+import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
+import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
 import android.net.Uri
 import android.app.AlertDialog
+import java.io.File
+import java.io.FileOutputStream
 
 class CropPreviewActivity : AppCompatActivity() {
 
@@ -48,20 +44,24 @@ class CropPreviewActivity : AppCompatActivity() {
 
     private var rawOriginalText: String = ""
     private var rawTranslatedText: String = ""
+    private var detectedSourceLangCode: String = "und"
 
-    private lateinit var btnTranslate: Button
+    private lateinit var btnScanText: Button
     private lateinit var btnCopyOriginal: Button
     private lateinit var btnCopyTranslated: Button
+    private lateinit var btnRetranslate: Button
     private lateinit var tvScannedText: TextView
-    private lateinit var edtAiPrompt: EditText
     private lateinit var tvFuriganaWarning: TextView
-
-    // ĐIỂM NHẤN UX: TẤM BẢNG HELP DESCRIPTION
     private lateinit var tvHelpDescription: TextView
+    private lateinit var layoutTextResult: LinearLayout
+
+    private lateinit var translationEngine: TranslationEngine
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_crop_preview)
+
+        translationEngine = TranslationEngine(this)
 
         val viewCropAdjust = findViewById<CropAdjustView>(R.id.view_crop_adjust)
         val btnCancel = findViewById<Button>(R.id.btn_cancel)
@@ -73,24 +73,23 @@ class CropPreviewActivity : AppCompatActivity() {
 
         val btnAiEdit = findViewById<Button>(R.id.btn_ai_edit)
         val layoutAiEditDialog = findViewById<LinearLayout>(R.id.layout_ai_edit_dialog)
-        edtAiPrompt = findViewById(R.id.edt_ai_prompt)
+        val edtAiPrompt = findViewById<EditText>(R.id.edt_ai_prompt)
         val btnCancelAi = findViewById<Button>(R.id.btn_cancel_ai)
         val btnGoToAi = findViewById<Button>(R.id.btn_go_to_ai)
 
-        val btnScanText = findViewById<Button>(R.id.btn_scan_text)
-        val layoutTextResult = findViewById<LinearLayout>(R.id.layout_text_result)
+        btnScanText = findViewById(R.id.btn_scan_text)
+        layoutTextResult = findViewById(R.id.layout_text_result)
         tvScannedText = findViewById(R.id.tv_scanned_text)
         tvFuriganaWarning = findViewById(R.id.tv_furigana_warning)
 
-        btnTranslate = findViewById(R.id.btn_translate)
         btnCopyOriginal = findViewById(R.id.btn_copy_original)
         btnCopyTranslated = findViewById(R.id.btn_copy_translated)
+        btnRetranslate = findViewById(R.id.btn_retranslate)
 
         val layoutNormalActions = findViewById<LinearLayout>(R.id.layout_normal_actions)
         val layoutEditActions = findViewById<LinearLayout>(R.id.layout_edit_actions)
         val btnConfirmCrop = findViewById<Button>(R.id.btn_confirm_crop)
 
-        // --- UX HELP PROMPT: ÁNH XẠ NÚT & BẢNG DESCRIPTION ---
         tvHelpDescription = findViewById(R.id.tv_help_description)
         val ibHelpCancel = findViewById<ImageButton>(R.id.ib_help_cancel)
         val ibHelpShare = findViewById<ImageButton>(R.id.ib_help_share)
@@ -157,7 +156,7 @@ class CropPreviewActivity : AppCompatActivity() {
             }
         }
 
-        fun toggleHelpDescription(buttonName: String, descriptionText: String) {
+        fun toggleHelpDescription(descriptionText: String) {
             val currentDesc = tvHelpDescription.text.toString()
             if (tvHelpDescription.visibility == View.VISIBLE && currentDesc == descriptionText) {
                 tvHelpDescription.visibility = View.GONE
@@ -168,30 +167,29 @@ class CropPreviewActivity : AppCompatActivity() {
             }
         }
 
-        ibHelpCancel.setOnClickListener { toggleHelpDescription("Hủy", "❌ Hủy bỏ thay đổi và quay lại màn hình chụp ảnh.") }
-        ibHelpShare.setOnClickListener { toggleHelpDescription("Share", "📤 Chia sẻ tấm ảnh này cho bạn bè qua các ứng dụng khác (Zalo, Facebook...).") }
-        ibHelpSearch.setOnClickListener { toggleHelpDescription("Tìm", "🔍 Tìm kiếm thông tin, sản phẩm, địa điểm... có trong bức ảnh này qua Google Lens.") }
-        ibHelpAiEdit.setOnClickListener { toggleHelpDescription("Sửa AI", "✨ Dùng sức mạnh AI (Gemini) để chỉnh sửa, biến đổi bức ảnh theo ý thích của bạn.") }
-        ibHelpScan.setOnClickListener { toggleHelpDescription("Quét", "📝 Nhận diện chữ viết trong ảnh. Chữ sẽ được hiển thị ở bảng phía trên.") }
-        ibHelpSave.setOnClickListener { toggleHelpDescription("Lưu", "💾 Lưu bức ảnh đã cắt này vào bộ sưu tập điện thoại của bạn.") }
+        ibHelpCancel.setOnClickListener { toggleHelpDescription("❌ Hủy bỏ thay đổi và quay lại màn hình chụp ảnh.") }
+        ibHelpShare.setOnClickListener { toggleHelpDescription("📤 Chia sẻ tấm ảnh này cho bạn bè qua các ứng dụng khác (Zalo, Facebook...).") }
+        ibHelpSearch.setOnClickListener { toggleHelpDescription("🔍 Tìm kiếm thông tin, sản phẩm, địa điểm... có trong bức ảnh này qua Google Lens.") }
+        ibHelpAiEdit.setOnClickListener { toggleHelpDescription("✨ Dùng sức mạnh AI (Gemini) để chỉnh sửa, biến đổi bức ảnh theo ý thích của bạn.") }
+        ibHelpScan.setOnClickListener { toggleHelpDescription("🌐 Nhận diện chữ trong ảnh và dịch sang ngôn ngữ bạn chọn (Gemini AI + Offline).") }
+        ibHelpSave.setOnClickListener { toggleHelpDescription("💾 Lưu bức ảnh đã cắt này vào bộ sưu tập điện thoại của bạn.") }
 
+        // ---- NÚT DỊCH TỔNG HỢP (OCR + Chọn ngôn ngữ + Dịch) ----
         btnScanText.setOnClickListener {
-            // NÂNG CẤP THÔNG MINH: Tự động quét không cần hỏi ngôn ngữ
-            startSmartOcr(currentCroppedBitmap!!, layoutTextResult, tvScannedText, btnScanText)
+            showLanguagePickerAndTranslate()
+        }
+
+        // ---- NÚT ĐỔI NGÔN NGỮ (dịch lại với ngôn ngữ khác) ----
+        btnRetranslate.setOnClickListener {
+            showLanguagePickerAndTranslate()
         }
 
         btnCopyOriginal.setOnClickListener {
-            if (rawOriginalText.isNotEmpty()) { copyToClipboard(rawOriginalText, "📋 Đã copy bản gốc!") }
+            if (rawOriginalText.isNotEmpty()) copyToClipboard(rawOriginalText, "📋 Đã copy bản gốc!")
         }
 
         btnCopyTranslated.setOnClickListener {
-            if (rawTranslatedText.isNotEmpty()) { copyToClipboard(rawTranslatedText, "📋 Đã copy bản dịch!") }
-        }
-
-        btnTranslate.setOnClickListener {
-            if (rawOriginalText.isNotEmpty()) {
-                showTargetLanguageDialog(rawOriginalText)
-            }
+            if (rawTranslatedText.isNotEmpty()) copyToClipboard(rawTranslatedText, "📋 Đã copy bản dịch!")
         }
 
         viewCropAdjust.onCropAreaReleased = { _ ->
@@ -213,6 +211,8 @@ class CropPreviewActivity : AppCompatActivity() {
                 viewCropAdjust.setBitmap(newBmp)
                 layoutNormalActions.visibility = View.VISIBLE
                 layoutEditActions.visibility = View.GONE
+                // Reset lại kết quả dịch khi cắt ảnh mới
+                resetTranslationResult()
             }
         }
     }
@@ -231,6 +231,154 @@ class CropPreviewActivity : AppCompatActivity() {
         }
         return super.dispatchTouchEvent(event)
     }
+
+    // =========================================================================
+    // LUỒNG CHÍNH: Hiện bảng chọn ngôn ngữ → OCR → Dịch
+    // =========================================================================
+
+    private fun showLanguagePickerAndTranslate() {
+        val bottomSheet = LanguageBottomSheetFragment()
+        bottomSheet.onLanguageSelected = { targetCode, targetName ->
+            // User đã chọn ngôn ngữ đích → bắt đầu xử lý
+            performOcrThenTranslate(currentCroppedBitmap!!, targetCode, targetName)
+        }
+        bottomSheet.show(supportFragmentManager, "LanguagePicker")
+    }
+
+    /**
+     * Bước 1: Chạy OCR thông minh (song song 4 recognizer)
+     * Bước 2: Nhận diện ngôn ngữ nguồn
+     * Bước 3: Gọi TranslationEngine (Gemini hoặc ML Kit fallback)
+     */
+    private fun performOcrThenTranslate(bitmap: Bitmap, targetCode: String, targetName: String) {
+        // Hiện loading
+        btnScanText.isEnabled = false
+        btnScanText.text = "⏳ Đang xử lý..."
+        btnRetranslate.visibility = View.GONE
+        btnCopyTranslated.visibility = View.GONE
+        rawOriginalText = ""
+        rawTranslatedText = ""
+        tvFuriganaWarning.visibility = View.GONE
+        layoutTextResult.visibility = View.GONE
+
+        val image = InputImage.fromBitmap(bitmap, 0)
+
+        // Chạy song song 4 bộ recognizer để lấy kết quả tốt nhất
+        val recognizers = listOf(
+            TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS),
+            TextRecognition.getClient(JapaneseTextRecognizerOptions.Builder().build()),
+            TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build()),
+            TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build())
+        )
+
+        var completedCount = 0
+        var bestText = ""
+
+        recognizers.forEach { recognizer ->
+            recognizer.process(image)
+                .addOnSuccessListener { visionText ->
+                    if (visionText.text.length > bestText.length) {
+                        bestText = visionText.text
+                    }
+                }
+                .addOnCompleteListener {
+                    completedCount++
+                    if (completedCount == recognizers.size) {
+                        runOnUiThread {
+                            if (bestText.trim().isEmpty()) {
+                                // Không tìm thấy chữ trong ảnh
+                                resetScanButton()
+                                Toast.makeText(this, "Không tìm thấy chữ nào trong ảnh!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                rawOriginalText = bestText
+                                // Bước 2: Nhận diện ngôn ngữ nguồn rồi dịch
+                                detectLanguageAndTranslate(rawOriginalText, targetCode, targetName)
+                            }
+                        }
+                    }
+                }
+        }
+    }
+
+    private fun detectLanguageAndTranslate(text: String, targetCode: String, targetName: String) {
+        val languageIdentifier = LanguageIdentification.getClient()
+        languageIdentifier.identifyLanguage(text)
+            .addOnSuccessListener { sourceLangCode ->
+                detectedSourceLangCode = if (sourceLangCode == "und") "en" else sourceLangCode
+                Log.d("CropPreview", "Ngôn ngữ nguồn phát hiện: $detectedSourceLangCode")
+                // Bước 3: Gọi engine dịch
+                startTranslation(text, detectedSourceLangCode, targetCode, targetName)
+            }
+            .addOnFailureListener {
+                // Nếu không nhận diện được, mặc định là tiếng Anh
+                detectedSourceLangCode = "en"
+                startTranslation(text, detectedSourceLangCode, targetCode, targetName)
+            }
+    }
+
+    private fun startTranslation(text: String, sourceLang: String, targetCode: String, targetName: String) {
+        btnScanText.text = "⏳ Đang dịch..."
+
+        translationEngine.translate(
+            text = text,
+            sourceLangCode = sourceLang,
+            targetLangCode = targetCode,
+            targetLangName = targetName,
+            onSuccess = { translatedText, usedGemini ->
+                rawTranslatedText = translatedText
+                displayTranslationResult(text, translatedText, targetName, usedGemini)
+            },
+            onError = { errorMessage ->
+                resetScanButton()
+                Toast.makeText(this, "❌ $errorMessage", Toast.LENGTH_LONG).show()
+            }
+        )
+    }
+
+    private fun displayTranslationResult(
+        originalText: String,
+        translatedText: String,
+        targetName: String,
+        usedGemini: Boolean
+    ) {
+        val engineLabel = if (usedGemini) "✨ Gemini AI" else "📴 Offline"
+        val displayText = "📄 Bản gốc:\n$originalText\n\n🌐 Dịch sang $targetName ($engineLabel):\n$translatedText"
+
+        tvScannedText.text = displayText
+        layoutTextResult.visibility = View.VISIBLE
+
+        // Hiện cảnh báo Furigana nếu có chữ Nhật
+        if (originalText.any { it.code in 0x3040..0x309F || it.code in 0x30A0..0x30FF }) {
+            tvFuriganaWarning.visibility = View.VISIBLE
+        }
+
+        // Hiện các nút hành động
+        btnCopyOriginal.visibility = View.VISIBLE
+        btnCopyTranslated.visibility = View.VISIBLE
+        btnRetranslate.visibility = View.VISIBLE
+
+        resetScanButton()
+    }
+
+    private fun resetScanButton() {
+        btnScanText.isEnabled = true
+        btnScanText.text = "🌐 DỊCH"
+    }
+
+    private fun resetTranslationResult() {
+        rawOriginalText = ""
+        rawTranslatedText = ""
+        detectedSourceLangCode = "und"
+        layoutTextResult.visibility = View.GONE
+        btnCopyTranslated.visibility = View.GONE
+        btnRetranslate.visibility = View.GONE
+        tvFuriganaWarning.visibility = View.GONE
+        resetScanButton()
+    }
+
+    // =========================================================================
+    // Các hàm tiện ích giữ nguyên
+    // =========================================================================
 
     private fun startAiWorkflow(bitmap: Bitmap, prompt: CharSequence) {
         Toast.makeText(this, "✨ Đang chuyển dữ liệu sang Gemini...", Toast.LENGTH_SHORT).show()
@@ -267,120 +415,6 @@ class CropPreviewActivity : AppCompatActivity() {
         val clip = ClipData.newPlainText("SceenCap_Text", text)
         clipboard.setPrimaryClip(clip)
         Toast.makeText(this, toastMessage, Toast.LENGTH_SHORT).show()
-    }
-
-    private fun startSmartOcr(bitmap: Bitmap, layoutResult: LinearLayout, tvResult: TextView, btnScan: Button) {
-        btnScan.isEnabled = false
-        btnScan.text = "⏳..."
-        btnTranslate.visibility = View.VISIBLE
-        btnTranslate.text = "🌐 DỊCH"
-        btnTranslate.isEnabled = true
-        btnCopyTranslated.visibility = View.GONE
-        rawOriginalText = ""
-        rawTranslatedText = ""
-        tvFuriganaWarning.visibility = View.GONE
-
-        val image = InputImage.fromBitmap(bitmap, 0)
-        
-        // Chạy song song các bộ quét để lấy kết quả tốt nhất
-        val recognizers = listOf(
-            TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS),
-            TextRecognition.getClient(JapaneseTextRecognizerOptions.Builder().build()),
-            TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build()),
-            TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build())
-        )
-
-        var completedCount = 0
-        var bestText = ""
-
-        recognizers.forEach { recognizer ->
-            recognizer.process(image)
-                .addOnSuccessListener { visionText ->
-                    if (visionText.text.length > bestText.length) {
-                        bestText = visionText.text
-                    }
-                }
-                .addOnCompleteListener {
-                    completedCount++
-                    if (completedCount == recognizers.size) {
-                        runOnUiThread {
-                            btnScan.isEnabled = true
-                            btnScan.text = "📝 QUÉT"
-                            if (bestText.trim().isEmpty()) {
-                                layoutResult.visibility = View.GONE
-                                Toast.makeText(this, "Không tìm thấy chữ nào trong ảnh!", Toast.LENGTH_SHORT).show()
-                            } else {
-                                layoutResult.visibility = View.VISIBLE
-                                rawOriginalText = bestText
-                                tvResult.text = rawOriginalText
-                                
-                                // Nếu có chữ tiếng Nhật, hiện cảnh báo Furigana cho chắc chắn
-                                if (rawOriginalText.any { it.code in 0x3040..0x309F || it.code in 0x30A0..0x30FF }) {
-                                    tvFuriganaWarning.visibility = View.VISIBLE
-                                }
-                            }
-                        }
-                    }
-                }
-        }
-    }
-
-    private fun showTargetLanguageDialog(textToTranslate: String) {
-        val languageIdentifier = LanguageIdentification.getClient()
-        languageIdentifier.identifyLanguage(textToTranslate)
-            .addOnSuccessListener { sourceLangCode ->
-                val finalSourceLang = if (sourceLangCode == "und") "en" else sourceLangCode
-                
-                val langMap = mapOf(
-                    "en" to "🇺🇸 Tiếng Anh",
-                    "vi" to "🇻🇳 Tiếng Việt",
-                    "ja" to "🇯🇵 Tiếng Nhật",
-                    "zh" to "🇨🇳 Tiếng Trung",
-                    "ko" to "🇰🇷 Tiếng Hàn"
-                )
-
-                val targetLangs = langMap.filter { it.key != finalSourceLang }
-                val displayNames = targetLangs.values.toTypedArray()
-                val langCodes = targetLangs.keys.toTypedArray()
-
-                AlertDialog.Builder(this, android.app.AlertDialog.THEME_DEVICE_DEFAULT_DARK)
-                    .setTitle("Dịch sang ngôn ngữ nào?")
-                    .setItems(displayNames) { _, which ->
-                        val targetCode = langCodes[which]
-                        downloadModelAndTranslate(finalSourceLang, targetCode, textToTranslate, displayNames[which])
-                    }
-                    .show()
-            }
-    }
-
-    private fun downloadModelAndTranslate(sourceLang: String, targetLang: String, text: String, targetName: String) {
-        btnTranslate.isEnabled = false
-        btnTranslate.text = "⏳..."
-        val options = TranslatorOptions.Builder()
-            .setSourceLanguage(sourceLang)
-            .setTargetLanguage(targetLang)
-            .build()
-        val translator = Translation.getClient(options)
-        translator.downloadModelIfNeeded(DownloadConditions.Builder().build())
-            .addOnSuccessListener {
-                translator.translate(text)
-                    .addOnSuccessListener { translatedText ->
-                        rawTranslatedText = translatedText
-                        tvScannedText.append("\n\n--- Bản dịch ($targetName) ---\n$rawTranslatedText")
-                        btnTranslate.visibility = View.GONE
-                        btnCopyTranslated.visibility = View.VISIBLE
-                        btnTranslate.isEnabled = true
-                        btnTranslate.text = "🌐 DỊCH"
-                    }
-                    .addOnFailureListener { resetTranslateButton() }
-            }
-            .addOnFailureListener { resetTranslateButton() }
-    }
-
-    private fun resetTranslateButton() {
-        btnTranslate.isEnabled = true
-        btnTranslate.text = "🌐 DỊCH"
-        Toast.makeText(this, "Lỗi dịch thuật!", Toast.LENGTH_SHORT).show()
     }
 
     private fun saveImageToGallery(bitmap: Bitmap) {

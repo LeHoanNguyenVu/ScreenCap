@@ -29,7 +29,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Kết quả quét:"
+            android:text="Kết quả dịch:"
             android:textColor="#AAAAAA"
             android:textSize="12sp"
             android:layout_marginBottom="8dp"/>
@@ -81,7 +81,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="COPY DỊCH"
+                android:text="📋 COPY DỊCH"
                 android:textStyle="bold"
                 android:textSize="12sp"
                 android:backgroundTint="#4CAF50"
@@ -89,13 +89,14 @@
                 android:layout_marginEnd="4dp" />
 
             <Button
-                android:id="@+id/btn_translate"
+                android:id="@+id/btn_retranslate"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="🌐 DỊCH (VI)"
+                android:text="🔄 ĐỔI NG.NGỮ"
                 android:textStyle="bold"
-                android:textSize="12sp"
+                android:textSize="11sp"
+                android:visibility="gone"
                 android:backgroundTint="#E91E63" />
         </LinearLayout>
     </LinearLayout>
@@ -216,8 +217,8 @@
                     </LinearLayout>
 
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center">
-                        <Button android:id="@+id/btn_scan_text" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="📝 Dịch" android:textSize="10sp" android:padding="8dp" android:textStyle="bold" android:backgroundTint="#9C27B0" android:background="@drawable/shape_button_rounded" />
-                        <ImageButton android:id="@+id/ib_help_scan" android:layout_width="48dp" android:layout_height="48dp" android:src="@drawable/ic_help_question" android:backgroundTint="@android:color/transparent" android:scaleType="centerInside" android:padding="16dp" android:contentDescription="Trợ giúp Quét chữ" tools:ignore="VectorDrawableCompat" />
+                        <Button android:id="@+id/btn_scan_text" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🌐 DỊCH" android:textSize="10sp" android:padding="8dp" android:textStyle="bold" android:backgroundTint="#9C27B0" android:background="@drawable/shape_button_rounded" />
+                        <ImageButton android:id="@+id/ib_help_scan" android:layout_width="48dp" android:layout_height="48dp" android:src="@drawable/ic_help_question" android:backgroundTint="@android:color/transparent" android:scaleType="centerInside" android:padding="16dp" android:contentDescription="Trợ giúp Dịch" tools:ignore="VectorDrawableCompat" />
                     </LinearLayout>
 
                 </LinearLayout>

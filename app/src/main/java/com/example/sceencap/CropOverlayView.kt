@@ -74,6 +74,12 @@ class CropOverlayView @JvmOverloads constructor(
                 startY = event.y
                 endX = event.x
                 endY = event.x // Đặt điểm cuối trùng điểm đầu để khung không bị méo lúc mới vẽ
+
+                // Ẩn ngôi sao để không bị chụp vào ảnh
+                val hideIntent = Intent(context, FloatingService::class.java)
+                hideIntent.action = "ACTION_HIDE_STAR"
+                context.startService(hideIntent)
+
                 invalidate() // Yêu cầu vẽ lại
                 return true
             }
@@ -129,6 +135,11 @@ class CropOverlayView @JvmOverloads constructor(
                 }
 
                 invalidate() // Vẽ lại màn hình về trạng thái tối đen để người dùng có thể vẽ lại nếu muốn
+
+                // Hiện lại ngôi sao sau khi đã cắt xong (hoặc nếu khung quá nhỏ)
+                val showIntent = Intent(context, FloatingService::class.java)
+                showIntent.action = "ACTION_SHOW_STAR"
+                context.startService(showIntent)
             }
         }
         return super.onTouchEvent(event)

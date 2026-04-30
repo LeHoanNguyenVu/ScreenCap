@@ -1,38 +1,36 @@
 # 🚀 TIẾN ĐỘ & QUY TRÌNH CODE: SCEENCAP
 
-## 1. Trạng thái hiện tại: Đã hoàn thiện 99% Core Flow & Rich Features
-Dự án đã cực kỳ ổn định. Toàn bộ các kênh chia sẻ dữ liệu ra bên ngoài (Share, AI, Lens) đã được gia cố bảo mật và cấp quyền đúng chuẩn Android mới nhất.
+## 1. Trạng thái hiện tại: Đã hoàn thiện 100% Core Flow & Smart Features
+Dự án đã đạt độ chín muồi về mặt kỹ thuật. Luồng người dùng đã được tối ưu hóa để giảm thiểu số lần nhấn nút (Click reduction) thông qua trí tuệ nhân tạo tự động.
 
-## 2. Cấu trúc File Logic & Tính năng mới (Cập nhật)
+## 2. Cấu trúc File Logic & Tính năng mới (Cập nhật SIÊU THÔNG MINH)
 
-### 🧩 Core Service
-* **`FloatingService.kt`:** 
-  - Điều phối trung tâm. Quản lý Ngôi sao nổi với hiệu ứng Animator "ép xung" đồ họa để chụp ảnh màn hình ngầm.
-  - Tích hợp thêm Menu mở rộng: Chụp ảnh (`btn_capture`) và Quét QR trực tiếp (`btn_menu_qr`).
+### 🧩 Core Service & UI
+* **`FloatingService.kt`:** Ổn định lõi chụp ảnh và menu nổi.
+* **`activity_scanner.xml`:** Đã dọn dẹp sạch Warning, sử dụng `app:tint` chuẩn hóa và fix lỗi typo XML.
 
 ### 📸 Camera & Scanning
-* **`ScannerActivity.kt` (MỚI):** 
-  - Sử dụng CameraX để quét QR/Barcode thực tế từ camera sau.
-  - Hỗ trợ Flash, hiệu ứng Scan Line chạy liên tục.
-  - **Smart Actions:** Tự động nhận diện loại dữ liệu (URL -> Mở trình duyệt, Wi-Fi -> Copy Pass, Text -> Tìm Google).
+* **`ScannerActivity.kt`:** 
+  - Chuyên biệt quét mã QR từ Camera. 
+  - Đã loại bỏ hoàn toàn các đề cập đến "Barcode" để tập trung vào trải nghiệm QR thuần túy.
 
-### 🎨 Image Processing & Intelligence (Rich Features)
-* **`CropPreviewActivity.kt`:** Hiện là trung tâm xử lý dữ liệu với các tính năng:
-  - **Đa ngôn ngữ OCR:** Không chỉ Latinh, đã hỗ trợ thêm Tiếng Nhật, Trung, Hàn thông qua Google ML Kit.
-  - **Offline Translation:** Tự động nhận diện ngôn ngữ và dịch sang Tiếng Việt ngay trong app (không cần Internet).
-  - **Quét QR từ ảnh:** Cho phép người dùng chụp/cắt một mã QR trên màn hình và giải mã ngay lập tức.
-  - **Google Lens Search:** Tích hợp sâu với Google Search App để tìm kiếm thông tin hình ảnh.
-  - **AI Edit (Gemini):** Tích hợp FileProvider để gửi ảnh và Prompt sang app Gemini, biến SceenCap thành cầu nối cho AI.
-  - **Hệ thống Help UX:** Các icon `ib_help_...` đi kèm bảng mô tả `tvHelpDescription` giúp người dùng mới dễ dàng tiếp cận tính năng.
+### 🎨 Image Processing & Smart Intelligence (Điểm nhấn mới)
+* **`CropPreviewActivity.kt` - TRẠM XỬ LÝ TRUNG TÂM:**
+  - **Smart OCR (Tự động 100%):** Không còn bảng chọn ngôn ngữ khi Quét. App tự chạy song song các bộ quét (Anh, Nhật, Trung, Hàn) và chọn kết quả có độ chính xác cao nhất.
+  - **Auto-Identify Translation:** Hệ thống tự nhận diện ngôn ngữ của văn bản gốc sau khi Quét. Chỉ hiện bảng chọn ngôn ngữ ĐÍCH khi người dùng nhấn nút Dịch.
+  - **Smart Filtering:** Tự lọc bỏ ngôn ngữ nguồn khỏi danh sách ngôn ngữ đích.
+  - **Furigana Detection:** Tự động cảnh báo nếu phát hiện ký tự tiếng Nhật.
 
-## 3. Các Bug & Rào cản đã vượt qua (Cập nhật)
-1. ✅ **FileProvider Security:** Đã cấu hình `filepaths.xml` và `FileProvider` để chia sẻ ảnh an toàn giữa các App (Zalo, Gemini, Google Lens).
-2. ✅ **Fix Lỗi Share/AI/Lens:** Đã thêm `ClipData` và gỡ bỏ `finish()` sớm để đảm quyền truy cập URI không bị ngắt quãng trên Android 13/14+.
-3. ✅ **Xử lý bộ nhớ:** Sử dụng `cacheDir` và timestamp để quản lý ảnh tạm, tránh xung đột dữ liệu.
-4. ✅ **Bàn phím đè UI:** Xử lý `dispatchTouchEvent` và `hideKeyboard` để đóng bàn phím êm ái khi người dùng chạm ra ngoài vùng nhập AI Prompt.
-5. ✅ **Furigana Handling:** Thêm cảnh báo khi quét tiếng Nhật có Furigana để người dùng chủ động điều chỉnh vùng cắt.
+## 3. Các Bug & Rào cản đã vượt qua (Gia cố)
+1. ✅ **Fix Lỗi "Vô lý" trong UX:** Loại bỏ việc bắt người dùng chọn ngôn ngữ thủ công khi kết quả đã rõ ràng.
+2. ✅ **XML Clean-up:** Sửa lỗi `android=:tint` và các warning đỏ làm xấu Project.
+3. ✅ **Thông báo chuẩn:** Đồng bộ hóa tất cả thông báo Toast/Dialog về "Mã QR", xóa bỏ chữ "Barcode".
+4. ✅ **An toàn dữ liệu:** Giữ nguyên 100% chức năng cũ của Share, Save, Lens và Gemini trong khi nâng cấp lõi OCR.
 
-## 4. Công việc còn lại
-* [ ] **Tối ưu hóa dung lượng:** Kiểm tra việc giải phóng bộ nhớ của `capturedBitmap` sau khi hoàn tất chu trình.
-* [ ] **Cải thiện UI/UX:** Làm đẹp hơn các Dialog thông báo kết quả QR để trông hiện đại hơn.
-* [ ] **Build & Test:** Kiểm tra độ ổn định trên các dòng máy khác nhau (Samsung OneUI, Pixel).
+## 4. Công việc tiếp theo (Nếu cần)
+* [ ] Kiểm tra hiệu năng khi chạy 4 Recognizer song song trên các thiết bị cấu hình thấp.
+* [ ] Tối ưu hóa giao diện bảng kết quả QR để trông hiện đại hơn.
+* [ ] Đóng gói và chuẩn bị cho bản phát hành chính thức.
+
+---
+**⚠️ LƯU Ý LÀM VIỆC:** Tuyệt đối chỉ chỉnh sửa trong phạm vi file và chức năng được yêu cầu. Không tự ý refactor hay thay đổi logic các phần không liên quan để bảo toàn tính ổn định của App.

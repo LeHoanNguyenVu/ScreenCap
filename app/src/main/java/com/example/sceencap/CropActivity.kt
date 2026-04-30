@@ -20,12 +20,6 @@ class CropActivity : AppCompatActivity() {
 
         instance = this
 
-        // --- PHÁT LỆNH GIẤU NGÔI SAO KHI VỪA MỞ MÀN HÌNH ---
-        startService(Intent(this, FloatingService::class.java).apply {
-            action = "ACTION_HIDE_STAR"
-        })
-        // --------------------------------------------------
-
         window.setFlags(
             android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
@@ -45,18 +39,24 @@ class CropActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Ẩn ngôi sao mỗi khi màn hình này active (kể cả khi quay lại từ CropPreviewActivity)
+        startService(Intent(this, FloatingService::class.java).apply {
+            action = "ACTION_HIDE_STAR"
+        })
         val viewCropOverlay = findViewById<CropOverlayView>(R.id.view_crop_overlay)
         viewCropOverlay?.reset()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Hiện lại ngôi sao khi rời màn hình này (sang CropPreviewActivity hoặc bất kỳ đâu)
+        startService(Intent(this, FloatingService::class.java).apply {
+            action = "ACTION_SHOW_STAR"
+        })
     }
 
     override fun onDestroy() {
         super.onDestroy()
         instance = null
-
-        // --- PHÁT LỆNH GỌI NGÔI SAO HIỆN LẠI KHI ĐÓNG MÀN HÌNH ---
-        startService(Intent(this, FloatingService::class.java).apply {
-            action = "ACTION_SHOW_STAR"
-        })
-        // ---------------------------------------------------------
     }
-}
+}
