@@ -1,4 +1,4 @@
-package com.example.sceencap
+package com.example.sceencap.ui.translation
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -8,6 +8,7 @@ import android.widget.TextView
 import androidx.appcompat.widget.SearchView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.sceencap.R
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
 /**

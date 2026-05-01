@@ -1,4 +1,4 @@
-package com.example.sceencap
+package com.example.sceencap.ui.crop
 
 import android.content.Context
 import android.graphics.*
@@ -32,10 +32,8 @@ class CropAdjustView @JvmOverloads constructor(
         this.bitmap = bmp
         activeCorner = 0
 
-        // --- MA THUẬT SỬA LỖI Ở ĐÂY ---
-        // Tính toán lại tọa độ 4 góc ôm sát vào ảnh mới ngay lập tức!
+        // Tính toán lại tọa độ 4 góc ôm sát vào ảnh mới ngay lập tức
         setupRects()
-        // ------------------------------
 
         requestLayout()
         invalidate()

@@ -21,7 +21,7 @@
         android:theme="@style/Theme.SceenCap">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.main.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -30,12 +30,12 @@
         </activity>
 
         <activity
-            android:name=".CaptureActivity"
+            android:name=".ui.capture.CaptureActivity"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:exported="false" />
 
         <service
-            android:name=".FloatingService"
+            android:name=".ui.floating.FloatingService"
             android:foregroundServiceType="specialUse|mediaProjection"
             android:exported="false">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_TYPE"
@@ -43,19 +43,19 @@
         </service>
 
         <activity
-            android:name=".CropActivity"
+            android:name=".ui.crop.CropActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar"
             android:screenOrientation="portrait"
             android:exported="false" />
 
         <activity
-            android:name=".CropPreviewActivity"
+            android:name=".ui.crop.CropPreviewActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar"
             android:screenOrientation="portrait"
             android:exported="false" />
 
         <activity
-            android:name=".ScannerActivity"
+            android:name=".ui.scanner.ScannerActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar"
             android:screenOrientation="portrait"
             android:exported="false" />

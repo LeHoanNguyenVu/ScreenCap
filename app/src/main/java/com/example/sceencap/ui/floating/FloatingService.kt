@@ -1,4 +1,4 @@
-package com.example.sceencap
+package com.example.sceencap.ui.floating
 
 import android.annotation.SuppressLint
 import android.app.AlertDialog
@@ -32,6 +32,10 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.createBitmap
+import com.example.sceencap.R
+import com.example.sceencap.ui.capture.CaptureActivity
+import com.example.sceencap.ui.crop.CropActivity
+import com.example.sceencap.ui.scanner.ScannerActivity
 import kotlin.math.abs
 
 class FloatingService : Service() {
@@ -66,7 +70,7 @@ class FloatingService : Service() {
 
         createNotificationChannel()
         val notification = createNotification("ScreenApp đang sẵn sàng")
-        
+
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -171,7 +175,7 @@ class FloatingService : Service() {
             viewExpanded.visibility = View.GONE
             viewCollapsed.visibility = View.VISIBLE
             floatingView.visibility = View.GONE
-            
+
             val intent = Intent(this, ScannerActivity::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(intent)
@@ -199,11 +203,11 @@ class FloatingService : Service() {
         val builder = AlertDialog.Builder(ContextThemeWrapper(this, android.R.style.Theme_DeviceDefault_Dialog_Alert))
         builder.setTitle("Xác nhận")
         builder.setMessage("Bạn có chắc muốn tắt ScreenApp?")
-        
+
         builder.setPositiveButton("Tắt") { _, _ ->
             stopSelf()
         }
-        
+
         builder.setNegativeButton("Hủy") { dialog, _ ->
             viewExpanded.visibility = View.GONE
             viewCollapsed.visibility = View.VISIBLE
@@ -271,9 +275,8 @@ class FloatingService : Service() {
             mediaProjection = projectionManager.getMediaProjection(screenCaptureResultCode, screenCaptureResultData!!)
             mediaProjection?.registerCallback(projectionCallback, null)
 
-            val displayManager = getSystemService(DISPLAY_SERVICE) as DisplayManager
             val metrics = DisplayMetrics()
-            
+
             @Suppress("DEPRECATION")
             windowManager.defaultDisplay.getRealMetrics(metrics)
 

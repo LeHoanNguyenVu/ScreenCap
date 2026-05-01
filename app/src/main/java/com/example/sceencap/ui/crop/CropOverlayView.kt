@@ -1,4 +1,4 @@
-package com.example.sceencap
+package com.example.sceencap.ui.crop
 
 import android.content.Context
 import android.content.Intent
@@ -7,6 +7,7 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
+import com.example.sceencap.ui.floating.FloatingService
 
 class CropOverlayView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -93,7 +94,6 @@ class CropOverlayView @JvmOverloads constructor(
                 // 3. THẢ NGÓN TAY RA: BẮT ĐẦU CẮT ẢNH THẬT!
 
                 // Lấy tọa độ cái khung chữ nhật đã vẽ
-                // Tọa độ này là tọa độ trên màn hình (X, Y)
                 val left = cropRect.left.toInt()
                 val top = cropRect.top.toInt()
                 val width = cropRect.width().toInt()
@@ -101,32 +101,25 @@ class CropOverlayView @JvmOverloads constructor(
 
                 currentRect.set(cropRect)
 
-                // Kiểm tra điều kiện:
-                // Nếu khung quá nhỏ (ví dụ nhỏ hơn 5 pixel mỗi cạnh), ta lờ đi
+                // Kiểm tra điều kiện: Nếu khung quá nhỏ, ta lờ đi
                 if (width < 5 || height < 5) {
                     Toast.makeText(context, "Khung cắt quá nhỏ, vui lòng vẽ lại!", Toast.LENGTH_SHORT).show()
-                    invalidate() // Vẽ lại màn hình tối để người dùng vẽ lại
+                    invalidate()
                     return true
                 }
 
-                // CỦNG CỐ CỘA ĐỘ: Đảm bảo khung không đi ra ngoài tấm ảnh nền
+                // CỦNG CỐ TỌA ĐỘ: Đảm bảo khung không đi ra ngoài tấm ảnh nền
                 val finalLeft = kotlin.math.max(0, left)
                 val finalTop = kotlin.math.max(0, top)
-                // Chiều rộng và cao tối đa là chiều rộng, cao tối đa của tấm ảnh nền
                 val finalWidth = kotlin.math.min(originalBitmap!!.width - finalLeft, width)
                 val finalHeight = kotlin.math.min(originalBitmap!!.height - finalTop, height)
 
-                // --- MA THUẬT CẮT ẢNH THẬT LÀ ĐÂY!!! ---
                 try {
-                    // Cắt lấy điểm ảnh từ tấm ảnh nền theo đúng tọa độ khung vẽ
                     val cropped = Bitmap.createBitmap(originalBitmap!!, finalLeft, finalTop, finalWidth, finalHeight)
 
-                    // 1. CẤT TẤM ẢNH CẮT VÀO BIẾN STATIC
                     croppedBitmap = cropped
 
-                    // 2. MỞ MÀN HÌNH XEM TRƯỚC (PREVIEW ACTIVITY) LÊN
                     val intent = Intent(context, CropPreviewActivity::class.java)
-                    // Vì chúng ta đang gọi Activity từ bên trong 1 custom View, ta cần lấy Context của Activity
                     context.startActivity(intent)
 
                 } catch (e: Throwable) {
@@ -134,9 +127,9 @@ class CropOverlayView @JvmOverloads constructor(
                     Toast.makeText(context, "Lỗi khi cắt ảnh: ${e.message}", Toast.LENGTH_LONG).show()
                 }
 
-                invalidate() // Vẽ lại màn hình về trạng thái tối đen để người dùng có thể vẽ lại nếu muốn
+                invalidate()
 
-                // Hiện lại ngôi sao sau khi đã cắt xong (hoặc nếu khung quá nhỏ)
+                // Hiện lại ngôi sao sau khi đã cắt xong
                 val showIntent = Intent(context, FloatingService::class.java)
                 showIntent.action = "ACTION_SHOW_STAR"
                 context.startService(showIntent)
@@ -145,13 +138,12 @@ class CropOverlayView @JvmOverloads constructor(
         return super.onTouchEvent(event)
     }
 
-    // HÀM VẼ LÊN CANVAS (Giữ nguyên)
+    // HÀM VẼ LÊN CANVAS
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
         if (startX == 0f && startY == 0f) return
 
-        // Dùng min/max để đảm bảo dù bạn kéo ngược hay xuôi thì khung vẫn vẽ đúng
         cropRect.set(
             kotlin.math.min(startX, endX),
             kotlin.math.min(startY, endY),

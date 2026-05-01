@@ -1,4 +1,4 @@
-package com.example.sceencap
+package com.example.sceencap.ui.crop
 
 import android.content.ActivityNotFoundException
 import android.content.ClipData
@@ -23,6 +23,9 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.sceencap.R
+import com.example.sceencap.core.engine.TranslationEngine
+import com.example.sceencap.ui.translation.LanguageBottomSheetFragment
 import com.google.mlkit.nl.languageid.LanguageIdentification
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -377,7 +380,7 @@ class CropPreviewActivity : AppCompatActivity() {
     }
 
     // =========================================================================
-    // Các hàm tiện ích giữ nguyên
+    // Các hàm tiện ích
     // =========================================================================
 
     private fun startAiWorkflow(bitmap: Bitmap, prompt: CharSequence) {

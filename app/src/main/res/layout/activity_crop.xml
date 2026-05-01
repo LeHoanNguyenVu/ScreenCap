@@ -11,7 +11,7 @@
         android:scaleType="fitCenter"
         android:contentDescription="Screenshot Background" />
 
-    <com.example.sceencap.CropOverlayView
+    <com.example.sceencap.ui.crop.CropOverlayView
         android:id="@+id/view_crop_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />

@@ -1,4 +1,4 @@
-package com.example.sceencap
+package com.example.sceencap.ui.scanner
 
 import android.Manifest
 import android.animation.ObjectAnimator
@@ -26,6 +26,8 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.sceencap.R
+import com.example.sceencap.ui.floating.FloatingService
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -39,7 +41,7 @@ class ScannerActivity : AppCompatActivity() {
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var scanLine: View
     private lateinit var btnFlash: ImageButton
-    
+
     private var camera: Camera? = null
     private var isFlashOn = false
     private var isScanning = true
@@ -74,13 +76,11 @@ class ScannerActivity : AppCompatActivity() {
         if (camera != null && camera!!.cameraInfo.hasFlashUnit()) {
             isFlashOn = !isFlashOn
             camera!!.cameraControl.enableTorch(isFlashOn)
-            
+
             if (isFlashOn) {
-                // Icon sấm sét bật (Dùng icon power off nhưng đổi màu vàng)
                 btnFlash.setImageResource(android.R.drawable.ic_lock_power_off)
                 btnFlash.setColorFilter(ContextCompat.getColor(this, android.R.color.holo_orange_light))
             } else {
-                // Icon sấm sét tắt
                 btnFlash.setImageResource(android.R.drawable.ic_lock_power_off)
                 btnFlash.setColorFilter(ContextCompat.getColor(this, android.R.color.darker_gray))
             }

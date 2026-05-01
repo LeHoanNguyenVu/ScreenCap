@@ -1,4 +1,4 @@
-package com.example.sceencap
+package com.example.sceencap.ui.capture
 
 import android.app.Activity
 import android.content.Context
@@ -8,14 +8,12 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import com.example.sceencap.ui.floating.FloatingService
 
 class CaptureActivity : ComponentActivity() {
 
     private val captureLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            // CỜ SỐ 1: BÁO CÁO LẤY THẺ BÀI THÀNH CÔNG
-            //Toast.makeText(this, "🚩 Cờ 1: Lấy thẻ bài thành công!", Toast.LENGTH_SHORT).show()
-
             val serviceIntent = Intent(this, FloatingService::class.java).apply {
                 action = "ACTION_SAVE_TOKEN_AND_CAPTURE"
                 putExtra("RESULT_CODE", result.resultCode)

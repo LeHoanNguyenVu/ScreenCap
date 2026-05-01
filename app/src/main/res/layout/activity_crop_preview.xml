@@ -9,7 +9,7 @@
     android:weightSum="10"
     android:fitsSystemWindows="true">
 
-    <com.example.sceencap.CropAdjustView
+    <com.example.sceencap.ui.crop.CropAdjustView
         android:id="@+id/view_crop_adjust"
         android:layout_width="match_parent"
         android:layout_height="0dp"

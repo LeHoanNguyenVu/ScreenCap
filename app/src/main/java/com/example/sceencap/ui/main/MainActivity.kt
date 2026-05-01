@@ -1,12 +1,12 @@
-package com.example.sceencap
+package com.example.sceencap.ui.main
 
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.sceencap.ui.floating.FloatingService
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,6 +40,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             startService(serviceIntent)
         }
-        finish() // Tắt màn hình chính ngay lập tức
+        finish()
     }
 }

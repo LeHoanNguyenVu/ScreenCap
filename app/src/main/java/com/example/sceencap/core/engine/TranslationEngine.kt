@@ -1,4 +1,4 @@
-package com.example.sceencap
+package com.example.sceencap.core.engine
 
 import android.content.Context
 import android.net.ConnectivityManager
@@ -68,7 +68,7 @@ class TranslationEngine(private val context: Context) {
         onSuccess: (String, Boolean) -> Unit,
         onError: (String) -> Unit
     ) {
-        val apiKey = BuildConfig.GEMINI_API_KEY
+        val apiKey = com.example.sceencap.BuildConfig.GEMINI_API_KEY
         if (apiKey.isBlank()) {
             Log.w(TAG, "Gemini API Key trống → Fallback ML Kit")
             translateWithMlKit(text, sourceLangCode, targetLangCode, targetLangName, onSuccess, onError)
@@ -180,7 +180,12 @@ class TranslationEngine(private val context: Context) {
         val parts = content.optJSONArray("parts") ?: return null
         if (parts.length() == 0) return null
 
-        return parts.getJSONObject(0).optString("text", "").trim()
+        val resultBuilder = java.lang.StringBuilder()
+        for (i in 0 until parts.length()) {
+            resultBuilder.append(parts.getJSONObject(i).optString("text", ""))
+        }
+
+        return resultBuilder.toString().trim()
     }
 
     // -------------------------------------------------------------------------
