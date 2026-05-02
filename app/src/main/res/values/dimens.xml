@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Airbnb Spacing -->
+    <dimen name="spacing_xxs">2dp</dimen>
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">12dp</dimen>
+    <dimen name="spacing_base">16dp</dimen>
+    <dimen name="spacing_lg">24dp</dimen>
+    
+    <!-- Airbnb Radii -->
+    <dimen name="radius_sm">8dp</dimen>
+    <dimen name="radius_md">14dp</dimen>
+    <dimen name="radius_lg">20dp</dimen>
+    <dimen name="radius_full">999dp</dimen>
+    
+    <!-- Component Sizes -->
+    <dimen name="floating_orb_size">56dp</dimen>
+    <dimen name="floating_collapsed_size">60dp</dimen>
+</resources>

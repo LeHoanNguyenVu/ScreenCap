@@ -18,10 +18,26 @@ class CropAdjustView @JvmOverloads constructor(
 
     private val paintDim = Paint().apply { color = Color.parseColor("#99000000") }
 
-    private val paintBracket = Paint().apply {
+    private val borderPaint = Paint().apply {
+        isAntiAlias = true
         color = Color.WHITE
         style = Paint.Style.STROKE
-        strokeWidth = 14f
+        strokeWidth = 3f
+    }
+
+    private val cornerPaint = Paint().apply {
+        isAntiAlias = true
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = 16f
+        strokeCap = Paint.Cap.SQUARE
+    }
+
+    private val cornerFillPaint = Paint().apply {
+        isAntiAlias = true
+        color = Color.parseColor("#FF385C") // Airbnb red
+        style = Paint.Style.STROKE
+        strokeWidth = 10f
         strokeCap = Paint.Cap.SQUARE
     }
 
@@ -69,20 +85,39 @@ class CropAdjustView @JvmOverloads constructor(
         canvas.drawRect(imageRect.left, cropRect.top, cropRect.left, cropRect.bottom, paintDim)
         canvas.drawRect(cropRect.right, cropRect.top, imageRect.right, cropRect.bottom, paintDim)
 
-        val len = 70f
-        val offset = paintBracket.strokeWidth / 2f
+        canvas.drawRect(cropRect, borderPaint)
 
-        canvas.drawLine(cropRect.left - offset, cropRect.top - offset, cropRect.left + len, cropRect.top - offset, paintBracket)
-        canvas.drawLine(cropRect.left - offset, cropRect.top - offset, cropRect.left - offset, cropRect.top + len, paintBracket)
+        // Vẽ 4 góc nổi bật (bracket style) - trắng viền ngoài, to và nổi bật hơn
+        val cornerLen = 100f
+        val l = cropRect.left
+        val t = cropRect.top
+        val r = cropRect.right
+        val b = cropRect.bottom
 
-        canvas.drawLine(cropRect.right + offset, cropRect.top - offset, cropRect.right - len, cropRect.top - offset, paintBracket)
-        canvas.drawLine(cropRect.right + offset, cropRect.top - offset, cropRect.right + offset, cropRect.top + len, paintBracket)
+        // Góc trên-trái
+        canvas.drawLine(l, t, l + cornerLen, t, cornerPaint)
+        canvas.drawLine(l, t, l, t + cornerLen, cornerPaint)
+        // Góc trên-phải
+        canvas.drawLine(r, t, r - cornerLen, t, cornerPaint)
+        canvas.drawLine(r, t, r, t + cornerLen, cornerPaint)
+        // Góc dưới-trái
+        canvas.drawLine(l, b, l + cornerLen, b, cornerPaint)
+        canvas.drawLine(l, b, l, b - cornerLen, cornerPaint)
+        // Góc dưới-phải
+        canvas.drawLine(r, b, r - cornerLen, b, cornerPaint)
+        canvas.drawLine(r, b, r, b - cornerLen, cornerPaint)
 
-        canvas.drawLine(cropRect.left - offset, cropRect.bottom + offset, cropRect.left + len, cropRect.bottom + offset, paintBracket)
-        canvas.drawLine(cropRect.left - offset, cropRect.bottom + offset, cropRect.left - offset, cropRect.bottom - len, paintBracket)
-
-        canvas.drawLine(cropRect.right + offset, cropRect.bottom + offset, cropRect.right - len, cropRect.bottom + offset, paintBracket)
-        canvas.drawLine(cropRect.right + offset, cropRect.bottom + offset, cropRect.right + offset, cropRect.bottom - len, paintBracket)
+        // Vẽ lớp màu đỏ Airbnb bên trong góc (layered effect)
+        // offset 0f vì stroke sẽ tự canh giữa, hoặc offset nhỏ hơn
+        val off = 0f
+        canvas.drawLine(l + off, t + off, l + cornerLen - off, t + off, cornerFillPaint)
+        canvas.drawLine(l + off, t + off, l + off, t + cornerLen - off, cornerFillPaint)
+        canvas.drawLine(r - off, t + off, r - cornerLen + off, t + off, cornerFillPaint)
+        canvas.drawLine(r - off, t + off, r - off, t + cornerLen - off, cornerFillPaint)
+        canvas.drawLine(l + off, b - off, l + cornerLen - off, b - off, cornerFillPaint)
+        canvas.drawLine(l + off, b - off, l + off, b - cornerLen + off, cornerFillPaint)
+        canvas.drawLine(r - off, b - off, r - cornerLen + off, b - off, cornerFillPaint)
+        canvas.drawLine(r - off, b - off, r - off, b - cornerLen + off, cornerFillPaint)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {

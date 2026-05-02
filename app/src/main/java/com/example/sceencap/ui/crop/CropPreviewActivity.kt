@@ -25,6 +25,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.sceencap.R
 import com.example.sceencap.core.engine.TranslationEngine
+import com.example.sceencap.ui.floating.FloatingService
 import com.example.sceencap.ui.translation.LanguageBottomSheetFragment
 import com.google.mlkit.nl.languageid.LanguageIdentification
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
@@ -49,7 +50,7 @@ class CropPreviewActivity : AppCompatActivity() {
     private var rawTranslatedText: String = ""
     private var detectedSourceLangCode: String = "und"
 
-    private lateinit var btnScanText: Button
+    private lateinit var btnScanText: View
     private lateinit var btnCopyOriginal: Button
     private lateinit var btnCopyTranslated: Button
     private lateinit var btnRetranslate: Button
@@ -64,17 +65,20 @@ class CropPreviewActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_crop_preview)
 
+        // Ẩn floating widget khi vào màn hình nghiệp vụ
+        sendServiceAction("ACTION_HIDE_STAR")
+
         translationEngine = TranslationEngine(this)
 
         val viewCropAdjust = findViewById<CropAdjustView>(R.id.view_crop_adjust)
-        val btnCancel = findViewById<Button>(R.id.btn_cancel)
-        val btnSave = findViewById<Button>(R.id.btn_save)
-        val btnShare = findViewById<Button>(R.id.btn_share)
-        val btnSearchImage = findViewById<Button>(R.id.btn_search_image)
-        val btnScanQr = findViewById<Button>(R.id.btn_scan_qr)
+        val btnCancel = findViewById<View>(R.id.btn_cancel)
+        val btnSave = findViewById<View>(R.id.btn_save)
+        val btnShare = findViewById<View>(R.id.btn_share)
+        val btnSearchImage = findViewById<View>(R.id.btn_search_image)
+        val btnScanQr = findViewById<View>(R.id.btn_scan_qr)
         btnScanQr.setOnClickListener { scanQrBarcode(currentCroppedBitmap!!) }
 
-        val btnAiEdit = findViewById<Button>(R.id.btn_ai_edit)
+        val btnAiEdit = findViewById<View>(R.id.btn_ai_edit)
         val layoutAiEditDialog = findViewById<LinearLayout>(R.id.layout_ai_edit_dialog)
         val edtAiPrompt = findViewById<EditText>(R.id.edt_ai_prompt)
         val btnCancelAi = findViewById<Button>(R.id.btn_cancel_ai)
@@ -89,17 +93,12 @@ class CropPreviewActivity : AppCompatActivity() {
         btnCopyTranslated = findViewById(R.id.btn_copy_translated)
         btnRetranslate = findViewById(R.id.btn_retranslate)
 
-        val layoutNormalActions = findViewById<LinearLayout>(R.id.layout_normal_actions)
+        val layoutNormalActions = findViewById<android.widget.GridLayout>(R.id.layout_normal_actions)
         val layoutEditActions = findViewById<LinearLayout>(R.id.layout_edit_actions)
         val btnConfirmCrop = findViewById<Button>(R.id.btn_confirm_crop)
 
         tvHelpDescription = findViewById(R.id.tv_help_description)
-        val ibHelpCancel = findViewById<ImageButton>(R.id.ib_help_cancel)
-        val ibHelpShare = findViewById<ImageButton>(R.id.ib_help_share)
-        val ibHelpSearch = findViewById<ImageButton>(R.id.ib_help_search)
-        val ibHelpAiEdit = findViewById<ImageButton>(R.id.ib_help_ai_edit)
-        val ibHelpScan = findViewById<ImageButton>(R.id.ib_help_scan)
-        val ibHelpSave = findViewById<ImageButton>(R.id.ib_help_save)
+        // Các biến ibHelp không cần thiết nữa (đã dùng long-press trên tile)
 
         currentCroppedBitmap = CropOverlayView.croppedBitmap
 
@@ -170,12 +169,13 @@ class CropPreviewActivity : AppCompatActivity() {
             }
         }
 
-        ibHelpCancel.setOnClickListener { toggleHelpDescription("❌ Hủy bỏ thay đổi và quay lại màn hình chụp ảnh.") }
-        ibHelpShare.setOnClickListener { toggleHelpDescription("📤 Chia sẻ tấm ảnh này cho bạn bè qua các ứng dụng khác (Zalo, Facebook...).") }
-        ibHelpSearch.setOnClickListener { toggleHelpDescription("🔍 Tìm kiếm thông tin, sản phẩm, địa điểm... có trong bức ảnh này qua Google Lens.") }
-        ibHelpAiEdit.setOnClickListener { toggleHelpDescription("✨ Dùng sức mạnh AI (Gemini) để chỉnh sửa, biến đổi bức ảnh theo ý thích của bạn.") }
-        ibHelpScan.setOnClickListener { toggleHelpDescription("🌐 Nhận diện chữ trong ảnh và dịch sang ngôn ngữ bạn chọn (Gemini AI + Offline).") }
-        ibHelpSave.setOnClickListener { toggleHelpDescription("💾 Lưu bức ảnh đã cắt này vào bộ sưu tập điện thoại của bạn.") }
+        // Trợ giúp: giữ lâu vào tile để xem mô tả
+        btnCancel.setOnLongClickListener { toggleHelpDescription("Hủy bỏ thay đổi và quay về màn hình chụp ảnh."); true }
+        btnShare.setOnLongClickListener { toggleHelpDescription("Chia sẻ tấm ảnh này cho bạn bè qua Zalo, Facebook..."); true }
+        btnSearchImage.setOnLongClickListener { toggleHelpDescription("Tìm kiếm sản phẩm, địa điểm... trong bức ảnh qua Google Lens."); true }
+        btnAiEdit.setOnLongClickListener { toggleHelpDescription("Dùng AI (Gemini) để chỉnh sửa, biến đổi bức ảnh theo ý thích."); true }
+        btnScanText.setOnLongClickListener { toggleHelpDescription("Nhận diện chữ và dịch sang ngôn ngữ bạn chọn (Gemini AI + Offline)."); true }
+        btnSave.setOnLongClickListener { toggleHelpDescription("Lưu bức ảnh đã cắt vào bộ sưu tập điện thoại."); true }
 
         // ---- NÚT DỊCH TỔNG HỢP (OCR + Chọn ngôn ngữ + Dịch) ----
         btnScanText.setOnClickListener {
@@ -256,7 +256,8 @@ class CropPreviewActivity : AppCompatActivity() {
     private fun performOcrThenTranslate(bitmap: Bitmap, targetCode: String, targetName: String) {
         // Hiện loading
         btnScanText.isEnabled = false
-        btnScanText.text = "⏳ Đang xử lý..."
+        val tvLabel = btnScanText.findViewById<TextView>(R.id.tv_label_scan)
+        if (tvLabel != null) tvLabel.text = "Đang quét..."
         btnRetranslate.visibility = View.GONE
         btnCopyTranslated.visibility = View.GONE
         rawOriginalText = ""
@@ -320,7 +321,8 @@ class CropPreviewActivity : AppCompatActivity() {
     }
 
     private fun startTranslation(text: String, sourceLang: String, targetCode: String, targetName: String) {
-        btnScanText.text = "⏳ Đang dịch..."
+        val tvLabel = btnScanText.findViewById<TextView>(R.id.tv_label_scan)
+        if (tvLabel != null) tvLabel.text = "Đang dịch..."
 
         translationEngine.translate(
             text = text,
@@ -365,7 +367,8 @@ class CropPreviewActivity : AppCompatActivity() {
 
     private fun resetScanButton() {
         btnScanText.isEnabled = true
-        btnScanText.text = "🌐 DỊCH"
+        val tvLabel = btnScanText.findViewById<TextView>(R.id.tv_label_scan)
+        if (tvLabel != null) tvLabel.text = "Dịch"
     }
 
     private fun resetTranslationResult() {
@@ -486,6 +489,18 @@ class CropPreviewActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Toast.makeText(this, "Lỗi tìm kiếm: ${e.message}", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun sendServiceAction(action: String) {
+        val intent = Intent(this, FloatingService::class.java)
+        intent.action = action
+        startService(intent)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Hiện lại floating widget khi rời màn hình nghiệp vụ
+        sendServiceAction("ACTION_SHOW_STAR")
     }
 
     private fun finishHome() {

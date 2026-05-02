@@ -2,6 +2,7 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
 }
 
 // Đọc Gemini API Key từ local.properties
@@ -13,34 +14,30 @@ val geminiApiKey: String = localProps.getProperty("GEMINI_API_KEY", "")
 
 android {
     namespace = "com.example.sceencap"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
-
+    compileSdk = 34
+ 
     defaultConfig {
         applicationId = "com.example.sceencap2"
         minSdk = 29
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
-
+ 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
+ 
         // Chỉ build cho kiến trúc 64-bit phổ biến → giảm ~10-20MB APK
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
         }
-
+ 
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
-
+ 
     }
-
+ 
     buildFeatures {
         buildConfig = true
     }
-
+ 
     buildTypes {
         release {
             // Bật R8 để shrink code → giảm ~15-30MB APK
@@ -58,6 +55,14 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
     }
 }
 

@@ -37,9 +37,25 @@ class CropOverlayView @JvmOverloads constructor(
 
     private val borderPaint = Paint().apply {
         isAntiAlias = true
-        color = Color.WHITE // Màu khung
+        color = Color.WHITE
         style = Paint.Style.STROKE
-        strokeWidth = 5f // Độ dày khung
+        strokeWidth = 3f
+    }
+
+    private val cornerPaint = Paint().apply {
+        isAntiAlias = true
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = 16f
+        strokeCap = Paint.Cap.SQUARE
+    }
+
+    private val cornerFillPaint = Paint().apply {
+        isAntiAlias = true
+        color = Color.parseColor("#FF385C") // Airbnb red
+        style = Paint.Style.STROKE
+        strokeWidth = 10f
+        strokeCap = Paint.Cap.SQUARE
     }
 
     // Hình chữ nhật đại diện cho vùng cắt
@@ -93,26 +109,33 @@ class CropOverlayView @JvmOverloads constructor(
             MotionEvent.ACTION_UP -> {
                 // 3. THẢ NGÓN TAY RA: BẮT ĐẦU CẮT ẢNH THẬT!
 
-                // Lấy tọa độ cái khung chữ nhật đã vẽ
-                val left = cropRect.left.toInt()
-                val top = cropRect.top.toInt()
-                val width = cropRect.width().toInt()
-                val height = cropRect.height().toInt()
+                // Tính toán tỷ lệ và độ lệch của ảnh nền do ImageView (fitCenter)
+                val bw = originalBitmap!!.width.toFloat()
+                val bh = originalBitmap!!.height.toFloat()
+                val scale = kotlin.math.min(width / bw, height / bh)
+                val newW = bw * scale
+                val newH = bh * scale
+                val imgLeft = (width - newW) / 2f
+                val imgTop = (height - newH) / 2f
 
-                currentRect.set(cropRect)
+                // Chuyển tọa độ khung cắt trên màn hình sang tọa độ thực của tấm ảnh
+                val cropLeft = ((cropRect.left - imgLeft) / scale).toInt()
+                val cropTop = ((cropRect.top - imgTop) / scale).toInt()
+                val cropWidth = (cropRect.width() / scale).toInt()
+                val cropHeight = (cropRect.height() / scale).toInt()
 
-                // Kiểm tra điều kiện: Nếu khung quá nhỏ, ta lờ đi
-                if (width < 5 || height < 5) {
-                    Toast.makeText(context, "Khung cắt quá nhỏ, vui lòng vẽ lại!", Toast.LENGTH_SHORT).show()
+                // CỦNG CỐ TỌA ĐỘ: Đảm bảo khung không đi ra ngoài tấm ảnh nền
+                val finalLeft = kotlin.math.max(0, cropLeft)
+                val finalTop = kotlin.math.max(0, cropTop)
+                val finalWidth = kotlin.math.min(originalBitmap!!.width - finalLeft, cropWidth)
+                val finalHeight = kotlin.math.min(originalBitmap!!.height - finalTop, cropHeight)
+
+                // Kiểm tra lại lần cuối nếu width/height âm do kéo ra ngoài màn hình
+                if (finalWidth <= 0 || finalHeight <= 0) {
+                    Toast.makeText(context, "Vùng cắt không hợp lệ!", Toast.LENGTH_SHORT).show()
                     invalidate()
                     return true
                 }
-
-                // CỦNG CỐ TỌA ĐỘ: Đảm bảo khung không đi ra ngoài tấm ảnh nền
-                val finalLeft = kotlin.math.max(0, left)
-                val finalTop = kotlin.math.max(0, top)
-                val finalWidth = kotlin.math.min(originalBitmap!!.width - finalLeft, width)
-                val finalHeight = kotlin.math.min(originalBitmap!!.height - finalTop, height)
 
                 try {
                     val cropped = Bitmap.createBitmap(originalBitmap!!, finalLeft, finalTop, finalWidth, finalHeight)
@@ -157,7 +180,38 @@ class CropOverlayView @JvmOverloads constructor(
         // 2. "Cọ tẩy" đục thủng lỗ hình chữ nhật (hiệu ứng sáng bừng vùng cắt)
         canvas.drawRect(cropRect, eraserPaint)
 
-        // 3. Vẽ thêm đường viền trắng xung quanh
+        // 3. Viền trắng mỏng bao quanh khung
         canvas.drawRect(cropRect, borderPaint)
+
+        // 4. Vẽ 4 góc nổi bật (bracket style) - trắng viền ngoài to và nổi bật hơn
+        val cornerLen = 100f
+        val l = cropRect.left
+        val t = cropRect.top
+        val r = cropRect.right
+        val b = cropRect.bottom
+
+        // Góc trên-trái
+        canvas.drawLine(l, t, l + cornerLen, t, cornerPaint)
+        canvas.drawLine(l, t, l, t + cornerLen, cornerPaint)
+        // Góc trên-phải
+        canvas.drawLine(r, t, r - cornerLen, t, cornerPaint)
+        canvas.drawLine(r, t, r, t + cornerLen, cornerPaint)
+        // Góc dưới-trái
+        canvas.drawLine(l, b, l + cornerLen, b, cornerPaint)
+        canvas.drawLine(l, b, l, b - cornerLen, cornerPaint)
+        // Góc dưới-phải
+        canvas.drawLine(r, b, r - cornerLen, b, cornerPaint)
+        canvas.drawLine(r, b, r, b - cornerLen, cornerPaint)
+
+        // 5. Vẽ lớp màu đỏ Airbnb bên trong góc (layered effect)
+        val off = 0f
+        canvas.drawLine(l + off, t + off, l + cornerLen - off, t + off, cornerFillPaint)
+        canvas.drawLine(l + off, t + off, l + off, t + cornerLen - off, cornerFillPaint)
+        canvas.drawLine(r - off, t + off, r - cornerLen + off, t + off, cornerFillPaint)
+        canvas.drawLine(r - off, t + off, r - off, t + cornerLen - off, cornerFillPaint)
+        canvas.drawLine(l + off, b - off, l + cornerLen - off, b - off, cornerFillPaint)
+        canvas.drawLine(l + off, b - off, l + off, b - cornerLen + off, cornerFillPaint)
+        canvas.drawLine(r - off, b - off, r - cornerLen + off, b - off, cornerFillPaint)
+        canvas.drawLine(r - off, b - off, r - off, b - cornerLen + off, cornerFillPaint)
     }
 }

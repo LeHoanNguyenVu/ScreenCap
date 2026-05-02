@@ -194,7 +194,7 @@ class FloatingService : Service() {
         return NotificationCompat.Builder(this, "sceencap_channel")
             .setContentTitle("SceenCap")
             .setContentText(text)
-            .setSmallIcon(android.R.drawable.ic_menu_camera)
+            .setSmallIcon(R.drawable.ic_capture)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
     }
