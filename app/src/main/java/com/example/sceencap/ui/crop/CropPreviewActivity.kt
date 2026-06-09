@@ -575,3 +575,24 @@ class CropPreviewActivity : AppCompatActivity() {
         dialogBuilder.show()
     }
 }
+                val ssid = barcode.wifi?.ssid ?: "Không rõ"
+                val password = barcode.wifi?.password ?: "Không có pass"
+                dialogBuilder.setMessage("📶 Mạng Wi-Fi: $ssid\n🔑 Mật khẩu: $password")
+                dialogBuilder.setPositiveButton("COPY PASS") { _, _ ->
+                    copyToClipboard(password, "Đã copy mật khẩu Wi-Fi!")
+                }
+            }
+            else -> {
+                dialogBuilder.setMessage("📄 Nội dung:\n$rawValue")
+                dialogBuilder.setPositiveButton("TÌM GOOGLE") { _, _ ->
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=$rawValue")))
+                }
+            }
+        }
+        dialogBuilder.setNeutralButton("COPY TẤT CẢ") { _, _ ->
+            copyToClipboard(rawValue, "Đã copy toàn bộ nội dung mã!")
+        }
+        dialogBuilder.setNegativeButton("ĐÓNG", null)
+        dialogBuilder.show()
+    }
+}
