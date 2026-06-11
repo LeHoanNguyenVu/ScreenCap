@@ -174,6 +174,101 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- AI Edit Result Section -->
+            <LinearLayout
+                android:id="@+id/layout_ai_result"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginBottom="16dp">
+
+                <!-- Loading state -->
+                <LinearLayout
+                    android:id="@+id/layout_ai_loading"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:visibility="gone">
+                    <ProgressBar
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginEnd="12dp" />
+                    <TextView
+                        android:id="@+id/tv_ai_loading_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="✨ Đang xử lý ảnh bằng AI..."
+                        android:textColor="@color/color_body"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <!-- Result image -->
+                <ImageView
+                    android:id="@+id/iv_ai_result"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/bg_bubble"
+                    android:scaleType="fitCenter"
+                    android:adjustViewBounds="true"
+                    android:visibility="gone" />
+
+                <!-- Remaining uses indicator -->
+                <TextView
+                    android:id="@+id/tv_ai_remaining"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/color_muted"
+                    android:textSize="11sp"
+                    android:layout_marginBottom="8dp"
+                    android:visibility="gone" />
+
+                <!-- Action buttons -->
+                <LinearLayout
+                    android:id="@+id/layout_ai_result_buttons"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+                    <Button
+                        android:id="@+id/btn_ai_save"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:text="💾 Lưu"
+                        android:textSize="11sp"
+                        android:backgroundTint="@color/color_fog"
+                        android:textColor="@color/color_ink"
+                        app:cornerRadius="20dp" />
+                    <Button
+                        android:id="@+id/btn_ai_replace"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.3"
+                        android:layout_marginEnd="4dp"
+                        android:text="Thay thế ảnh"
+                        android:textSize="11sp"
+                        android:backgroundTint="@color/color_primary"
+                        android:textColor="#FFFFFF"
+                        app:cornerRadius="20dp" />
+                    <Button
+                        android:id="@+id/btn_ai_close"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.8"
+                        android:text="Đóng"
+                        android:textSize="11sp"
+                        android:backgroundTint="@color/color_fog"
+                        android:textColor="@color/color_ink"
+                        app:cornerRadius="20dp" />
+                </LinearLayout>
+            </LinearLayout>
+
             <!-- Confirm Crop Panel (shown when adjusting crop) -->
             <LinearLayout
                 android:id="@+id/layout_edit_actions"

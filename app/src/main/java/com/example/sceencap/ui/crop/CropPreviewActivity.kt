@@ -19,11 +19,15 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.sceencap.BuildConfig
 import com.example.sceencap.R
+import com.example.sceencap.core.engine.AiRateLimiter
+import com.example.sceencap.core.engine.ImageEditEngine
 import com.example.sceencap.core.engine.TranslationEngine
 import com.example.sceencap.ui.floating.FloatingService
 import com.example.sceencap.ui.translation.LanguageBottomSheetFragment
@@ -60,6 +64,16 @@ class CropPreviewActivity : AppCompatActivity() {
     private lateinit var layoutTextResult: LinearLayout
 
     private lateinit var translationEngine: TranslationEngine
+    private lateinit var imageEditEngine: ImageEditEngine
+    private lateinit var aiRateLimiter: AiRateLimiter
+
+    // AI result UI
+    private lateinit var layoutAiResult: LinearLayout
+    private lateinit var layoutAiLoading: LinearLayout
+    private lateinit var ivAiResult: ImageView
+    private lateinit var tvAiRemaining: TextView
+    private lateinit var layoutAiResultButtons: LinearLayout
+    private var lastAiResultBitmap: Bitmap? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,6 +83,8 @@ class CropPreviewActivity : AppCompatActivity() {
         sendServiceAction("ACTION_HIDE_STAR")
 
         translationEngine = TranslationEngine(this)
+        imageEditEngine = ImageEditEngine()
+        aiRateLimiter = AiRateLimiter(this)
 
         val viewCropAdjust = findViewById<CropAdjustView>(R.id.view_crop_adjust)
         val btnCancel = findViewById<View>(R.id.btn_cancel)
@@ -98,6 +114,34 @@ class CropPreviewActivity : AppCompatActivity() {
         val btnConfirmCrop = findViewById<Button>(R.id.btn_confirm_crop)
 
         tvHelpDescription = findViewById(R.id.tv_help_description)
+
+        // AI result views
+        layoutAiResult = findViewById(R.id.layout_ai_result)
+        layoutAiLoading = findViewById(R.id.layout_ai_loading)
+        ivAiResult = findViewById(R.id.iv_ai_result)
+        tvAiRemaining = findViewById(R.id.tv_ai_remaining)
+        layoutAiResultButtons = findViewById(R.id.layout_ai_result_buttons)
+
+        val btnAiSave = findViewById<Button>(R.id.btn_ai_save)
+        val btnAiReplace = findViewById<Button>(R.id.btn_ai_replace)
+        val btnAiClose = findViewById<Button>(R.id.btn_ai_close)
+
+        btnAiSave.setOnClickListener {
+            lastAiResultBitmap?.let { saveImageToGallery(it) }
+        }
+
+        btnAiReplace.setOnClickListener {
+            lastAiResultBitmap?.let { resultBmp ->
+                currentCroppedBitmap = resultBmp
+                viewCropAdjust.setBitmap(resultBmp)
+                hideAiResult()
+                Toast.makeText(this, "✅ Đã thay thế ảnh gốc!", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnAiClose.setOnClickListener {
+            hideAiResult()
+        }
         // Các biến ibHelp không cần thiết nữa (đã dùng long-press trên tile)
 
         currentCroppedBitmap = CropOverlayView.croppedBitmap
@@ -387,33 +431,67 @@ class CropPreviewActivity : AppCompatActivity() {
     // =========================================================================
 
     private fun startAiWorkflow(bitmap: Bitmap, prompt: CharSequence) {
-        Toast.makeText(this, "✨ Đang chuyển dữ liệu sang Gemini...", Toast.LENGTH_SHORT).show()
-        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText("SceenCap_Prompt", prompt)
-        clipboard.setPrimaryClip(clip)
-        try {
-            val cachePath = File(cacheDir, "images")
-            cachePath.mkdirs()
-            val uniqueFileName = "ai_edit_input_${System.currentTimeMillis()}.jpg"
-            val file = File(cachePath, uniqueFileName)
-            val fileOutputStream = FileOutputStream(file)
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fileOutputStream)
-            fileOutputStream.close()
-            val authority = "${applicationContext.packageName}.fileprovider"
-            val uri = androidx.core.content.FileProvider.getUriForFile(this, authority, file)
-            val aiIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "image/jpeg"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                clipData = ClipData.newRawUri("", uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                setPackage("com.google.android.apps.bard")
-            }
-            startActivity(aiIntent)
-        } catch (e: ActivityNotFoundException) {
-            Toast.makeText(this, "Không tìm thấy App Gemini!", Toast.LENGTH_LONG).show()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Lỗi AI: ${e.message}", Toast.LENGTH_SHORT).show()
+        // Kiểm tra rate limit
+        if (!aiRateLimiter.canUse()) {
+            Toast.makeText(this, "⚠️ Bạn đã dùng hết 15 lượt AI hôm nay. Thử lại ngày mai nhé!", Toast.LENGTH_LONG).show()
+            return
         }
+
+        val apiKey = BuildConfig.GEMINI_API_KEY
+        if (apiKey.isBlank()) {
+            Toast.makeText(this, "❌ API Key chưa được cấu hình!", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        // Hiển thị loading
+        showAiLoading()
+
+        imageEditEngine.editImage(
+            bitmap = bitmap,
+            prompt = prompt.toString(),
+            apiKey = apiKey,
+            onSuccess = { resultBitmap ->
+                aiRateLimiter.recordUse()
+                lastAiResultBitmap = resultBitmap
+                showAiResult(resultBitmap)
+            },
+            onError = { errorMessage ->
+                hideAiResult()
+                Toast.makeText(this, "❌ $errorMessage", Toast.LENGTH_LONG).show()
+            }
+        )
+    }
+
+    private fun showAiLoading() {
+        layoutAiResult.visibility = View.VISIBLE
+        layoutAiLoading.visibility = View.VISIBLE
+        ivAiResult.visibility = View.GONE
+        layoutAiResultButtons.visibility = View.GONE
+        tvAiRemaining.visibility = View.GONE
+        // Ẩn các panel khác
+        layoutTextResult.visibility = View.GONE
+        tvHelpDescription.visibility = View.GONE
+        findViewById<LinearLayout>(R.id.layout_ai_edit_dialog).visibility = View.GONE
+    }
+
+    private fun showAiResult(bitmap: Bitmap) {
+        layoutAiLoading.visibility = View.GONE
+        ivAiResult.setImageBitmap(bitmap)
+        ivAiResult.visibility = View.VISIBLE
+        layoutAiResultButtons.visibility = View.VISIBLE
+        // Hiển thị số lượt còn lại
+        val remaining = aiRateLimiter.getRemainingUses()
+        tvAiRemaining.text = "Còn $remaining lượt AI hôm nay"
+        tvAiRemaining.visibility = View.VISIBLE
+    }
+
+    private fun hideAiResult() {
+        layoutAiResult.visibility = View.GONE
+        layoutAiLoading.visibility = View.GONE
+        ivAiResult.visibility = View.GONE
+        layoutAiResultButtons.visibility = View.GONE
+        tvAiRemaining.visibility = View.GONE
+        lastAiResultBitmap = null
     }
 
     private fun copyToClipboard(text: String, toastMessage: String) {
@@ -554,27 +632,6 @@ class CropPreviewActivity : AppCompatActivity() {
                 }
             }
             Barcode.TYPE_WIFI -> {
-                val ssid = barcode.wifi?.ssid ?: "Không rõ"
-                val password = barcode.wifi?.password ?: "Không có pass"
-                dialogBuilder.setMessage("📶 Mạng Wi-Fi: $ssid\n🔑 Mật khẩu: $password")
-                dialogBuilder.setPositiveButton("COPY PASS") { _, _ ->
-                    copyToClipboard(password, "Đã copy mật khẩu Wi-Fi!")
-                }
-            }
-            else -> {
-                dialogBuilder.setMessage("📄 Nội dung:\n$rawValue")
-                dialogBuilder.setPositiveButton("TÌM GOOGLE") { _, _ ->
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=$rawValue")))
-                }
-            }
-        }
-        dialogBuilder.setNeutralButton("COPY TẤT CẢ") { _, _ ->
-            copyToClipboard(rawValue, "Đã copy toàn bộ nội dung mã!")
-        }
-        dialogBuilder.setNegativeButton("ĐÓNG", null)
-        dialogBuilder.show()
-    }
-}
                 val ssid = barcode.wifi?.ssid ?: "Không rõ"
                 val password = barcode.wifi?.password ?: "Không có pass"
                 dialogBuilder.setMessage("📶 Mạng Wi-Fi: $ssid\n🔑 Mật khẩu: $password")
