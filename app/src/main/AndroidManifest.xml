@@ -4,6 +4,24 @@
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" />
+    <queries>
+        <package android:name="com.google.android.apps.bard" />
+        <package android:name="com.VCB" />
+        <package android:name="com.techcombank.mobile" />
+        <package android:name="com.mbmobile.mbbank" />
+        <package android:name="com.bidv.smartbanking" />
+        <package android:name="com.vnpay.Agribank3g" />
+        <package android:name="com.acb.mb.online" />
+        <package android:name="com.vpbank.neo" />
+        <package android:name="com.tpb.mb.gprsandroid" />
+        <package android:name="com.vietinbank.ipay" />
+        <package android:name="com.sacombank.pay" />
+    </queries>
 
     <application
         android:allowBackup="true"
@@ -13,18 +31,65 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SceenCap">
+        android:theme="@style/Theme.SceenCap"
+        android:extractNativeLibs="false"
+        tools:targetApi="35">
+
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.main.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <service android:name=".FloatingService" />
+        <activity
+            android:name=".ui.capture.CaptureActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:exported="false" />
+
+        <service
+            android:name=".ui.floating.FloatingService"
+            android:foregroundServiceType="specialUse|mediaProjection"
+            android:exported="false">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_TYPE"
+                android:value="Floating menu for screen capture and QR scanning utility" />
+        </service>
+
+        <activity
+            android:name=".ui.crop.CropActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.crop.CropPreviewActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.scanner.ScannerActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.scanner.BankTransferActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/filepaths" />
+        </provider>
 
     </application>
 

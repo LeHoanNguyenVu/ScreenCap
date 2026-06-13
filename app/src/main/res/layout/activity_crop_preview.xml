@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://tools.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_ink"
+    android:fitsSystemWindows="true">
+
+    <!-- Top Area: Image Preview -->
+    <com.example.sceencap.ui.crop.CropAdjustView
+        android:id="@+id/view_crop_adjust"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_margin="16dp"
+        app:layout_constraintBottom_toTopOf="@+id/bottom_panel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Bottom Panel (Airbnb Style) -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/bottom_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_bottom_panel"
+        android:elevation="12dp"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- Drag Handle -->
+            <View
+                android:layout_width="40dp"
+                android:layout_height="4dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="16dp"
+                android:background="@color/color_fog" />
+
+            <!-- Help Description (shown on long press) -->
+            <TextView
+                android:id="@+id/tv_help_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_bubble"
+                android:padding="12dp"
+                android:textColor="@color/color_body"
+                android:textSize="13sp"
+                android:visibility="gone"
+                tools:text="Hướng dẫn sẽ hiện ở đây..." />
+
+            <!-- Translation Results Section -->
+            <LinearLayout
+                android:id="@+id/layout_text_result"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/tv_scanned_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_bubble"
+                    android:padding="16dp"
+                    android:textColor="@color/color_ink"
+                    android:textSize="15sp"
+                    android:textIsSelectable="true"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tv_furigana_warning"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="⚠️ Lưu ý: Furigana có thể làm sai bản dịch."
+                    android:textColor="#D32F2F"
+                    android:textSize="11sp"
+                    android:layout_marginBottom="8dp"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center">
+                    <Button
+                        android:id="@+id/btn_copy_original"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:text="Copy gốc"
+                        android:textSize="11sp"
+                        android:backgroundTint="@color/color_fog"
+                        android:textColor="@color/color_ink"
+                        app:cornerRadius="20dp" />
+                    <Button
+                        android:id="@+id/btn_copy_translated"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:text="Copy dịch"
+                        android:textSize="11sp"
+                        android:backgroundTint="@color/color_fog"
+                        android:textColor="@color/color_ink"
+                        app:cornerRadius="20dp" />
+                    <Button
+                        android:id="@+id/btn_retranslate"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.3"
+                        android:text="Đổi ngôn ngữ"
+                        android:textSize="10sp"
+                        android:backgroundTint="@color/color_primary"
+                        android:textColor="#FFFFFF"
+                        app:cornerRadius="20dp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- AI Edit Prompt Section -->
+            <LinearLayout
+                android:id="@+id/layout_ai_edit_dialog"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginBottom="16dp">
+
+                <EditText
+                    android:id="@+id/edt_ai_prompt"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="80dp"
+                    android:background="@drawable/bg_bubble"
+                    android:gravity="top"
+                    android:hint="Nhập ý tưởng sửa ảnh..."
+                    android:textColorHint="@color/color_muted"
+                    android:textColor="@color/color_ink"
+                    android:padding="16dp"
+                    android:textSize="14sp"
+                    android:inputType="textMultiLine"
+                    android:importantForAutofill="no" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="12dp">
+                    <Button
+                        android:id="@+id/btn_cancel_ai"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:text="Quay lại"
+                        android:backgroundTint="@color/color_fog"
+                        android:textColor="@color/color_ink"
+                        app:cornerRadius="12dp" />
+                    <Button
+                        android:id="@+id/btn_go_to_ai"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.5"
+                        android:text="Sửa với Gemini"
+                        android:backgroundTint="@color/color_primary"
+                        app:cornerRadius="12dp" />
+                </LinearLayout>
+            </LinearLayout>
+
+
+            <!-- Confirm Crop Panel (shown when adjusting crop) -->
+            <LinearLayout
+                android:id="@+id/layout_edit_actions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:visibility="gone"
+                android:layout_marginBottom="8dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Kéo các góc để điều chỉnh vùng cắt"
+                    android:textColor="@color/color_muted"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:layout_marginBottom="12dp" />
+                <Button
+                    android:id="@+id/btn_confirm_crop"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="XÁC NHẬN CẮT ẢNH"
+                    android:textStyle="bold"
+                    android:backgroundTint="#4CAF50"
+                    app:cornerRadius="12dp" />
+            </LinearLayout>
+
+            <!-- Action Tiles Grid (2 rows x 4 cols) -->
+            <GridLayout
+                android:id="@+id/layout_normal_actions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="4"
+                android:useDefaultMargins="false">
+
+                <!-- Cancel -->
+                <LinearLayout
+                    android:id="@+id/btn_cancel"
+                    style="@style/AirbnbActionTile"
+                    android:layout_columnWeight="1">
+                    <ImageView
+                        style="@style/AirbnbActionIcon"
+                        android:src="@drawable/ic_close_vector"
+                        android:clickable="false"
+                        android:focusable="false"
+                        app:tint="@color/color_ink" />
+                    <TextView
+                        style="@style/AirbnbActionLabel"
+                        android:text="Hủy" />
+                </LinearLayout>
+
+                <!-- Search -->
+                <LinearLayout
+                    android:id="@+id/btn_search_image"
+                    style="@style/AirbnbActionTile"
+                    android:layout_columnWeight="1">
+                    <ImageView
+                        style="@style/AirbnbActionIcon"
+                        android:src="@drawable/ic_search_vector"
+                        android:clickable="false"
+                        android:focusable="false"
+                        app:tint="@color/color_ink" />
+                    <TextView
+                        style="@style/AirbnbActionLabel"
+                        android:text="Tìm" />
+                </LinearLayout>
+
+                <!-- Translate -->
+                <LinearLayout
+                    android:id="@+id/btn_scan_text"
+                    style="@style/AirbnbActionTile"
+                    android:layout_columnWeight="1">
+                    <ImageView
+                        style="@style/AirbnbActionIcon"
+                        android:src="@drawable/ic_translate_vector"
+                        android:clickable="false"
+                        android:focusable="false"
+                        app:tint="@color/color_ink" />
+                    <TextView
+                        android:id="@+id/tv_label_scan"
+                        style="@style/AirbnbActionLabel"
+                        android:text="Dịch" />
+                </LinearLayout>
+
+                <!-- Share -->
+                <LinearLayout
+                    android:id="@+id/btn_share"
+                    style="@style/AirbnbActionTile"
+                    android:layout_columnWeight="1">
+                    <ImageView
+                        style="@style/AirbnbActionIcon"
+                        android:src="@drawable/ic_share_vector"
+                        android:clickable="false"
+                        android:focusable="false"
+                        app:tint="@color/color_ink" />
+                    <TextView
+                        style="@style/AirbnbActionLabel"
+                        android:text="Share" />
+                </LinearLayout>
+
+                <!-- AI Edit -->
+                <LinearLayout
+                    android:id="@+id/btn_ai_edit"
+                    style="@style/AirbnbActionTile"
+                    android:layout_columnWeight="1">
+                    <ImageView
+                        style="@style/AirbnbActionIcon"
+                        android:src="@drawable/ic_magic_wand_vector"
+                        android:clickable="false"
+                        android:focusable="false"
+                        app:tint="@color/color_ink" />
+                    <TextView
+                        style="@style/AirbnbActionLabel"
+                        android:text="AI" />
+                </LinearLayout>
+
+                <!-- Copy Image -->
+                <LinearLayout
+                    android:id="@+id/btn_copy_image"
+                    style="@style/AirbnbActionTile"
+                    android:layout_columnWeight="1">
+                    <ImageView
+                        style="@style/AirbnbActionIcon"
+                        android:src="@drawable/ic_copy_vector"
+                        android:clickable="false"
+                        android:focusable="false"
+                        app:tint="@color/color_ink" />
+                    <TextView
+                        style="@style/AirbnbActionLabel"
+                        android:text="Copy" />
+                </LinearLayout>
+
+                <!-- Save -->
+                <LinearLayout
+                    android:id="@+id/btn_save"
+                    style="@style/AirbnbActionTile"
+                    android:layout_columnWeight="1">
+                    <ImageView
+                        style="@style/AirbnbActionIcon"
+                        android:src="@drawable/ic_save_vector"
+                        android:clickable="false"
+                        android:focusable="false"
+                        app:tint="@color/color_ink" />
+                    <TextView
+                        style="@style/AirbnbActionLabel"
+                        android:text="Lưu" />
+                </LinearLayout>
+
+                <!-- QR Scan -->
+                <LinearLayout
+                    android:id="@+id/btn_scan_qr"
+                    style="@style/AirbnbActionTile"
+                    android:layout_columnWeight="1">
+                    <ImageView
+                        style="@style/AirbnbActionIcon"
+                        android:src="@drawable/ic_qr_code"
+                        android:clickable="false"
+                        android:focusable="false"
+                        app:tint="@color/color_ink" />
+                    <TextView
+                        style="@style/AirbnbActionLabel"
+                        android:text="QR" />
+                </LinearLayout>
+
+            </GridLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

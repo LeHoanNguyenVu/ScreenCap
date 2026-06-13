@@ -1,14 +1,84 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/widget_root"
     android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:padding="8dp">
 
-    <ImageView
-        android:id="@+id/btn_floating_capture"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:background="@android:drawable/btn_star_big_on"
-        android:elevation="5dp" />
+    <!-- Airbnb-style Orb when collapsed -->
+    <FrameLayout
+        android:id="@+id/view_collapsed"
+        android:layout_width="@dimen/floating_collapsed_size"
+        android:layout_height="@dimen/floating_collapsed_size"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_primary_orb"
+        android:elevation="8dp">
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_capture"
+            app:tint="@color/color_canvas" />
+    </FrameLayout>
+
+    <!-- Expanded Menu -->
+    <LinearLayout
+        android:id="@+id/view_expanded"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone"
+        android:padding="@dimen/spacing_xs">
+
+        <!-- Capture Button (Search Orb Style) -->
+        <FrameLayout
+            android:id="@+id/btn_capture"
+            android:layout_width="@dimen/floating_orb_size"
+            android:layout_height="@dimen/floating_orb_size"
+            android:background="@drawable/bg_primary_orb"
+            android:elevation="6dp"
+            android:layout_marginBottom="@dimen/spacing_md">
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_capture"
+                app:tint="@color/color_canvas" />
+        </FrameLayout>
+
+        <!-- QR Button (White Bubble) -->
+        <FrameLayout
+            android:id="@+id/btn_menu_qr"
+            android:layout_width="@dimen/floating_orb_size"
+            android:layout_height="@dimen/floating_orb_size"
+            android:background="@drawable/bg_bubble"
+            android:elevation="6dp"
+            android:layout_marginBottom="@dimen/spacing_md">
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_qr_code"
+                app:tint="@color/color_ink" />
+        </FrameLayout>
+
+        <!-- Close Button (Secondary Style) -->
+        <FrameLayout
+            android:id="@+id/btn_close"
+            android:layout_width="@dimen/floating_orb_size"
+            android:layout_height="@dimen/floating_orb_size"
+            android:background="@drawable/bg_bubble"
+            android:elevation="6dp">
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_close_vector"
+                app:tint="@color/color_ink" />
+        </FrameLayout>
+    </LinearLayout>
 
 </FrameLayout>

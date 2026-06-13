@@ -1,21 +1,31 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ============================================================
+# ProGuard Rules — SceenCap
+# ============================================================
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# --- Giữ thông tin debug stack trace ---
+-keepattributes SourceFile,LineNumberTable
+-keepattributes *Annotation*
+-keepattributes Signature
+-keepattributes Exceptions
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# --- ML Kit: Text Recognition ---
+-keep class com.google.mlkit.vision.text.** { *; }
+-keep class com.google.android.gms.internal.mlkit_vision_text_common.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# --- ML Kit: Translation + Language ID ---
+-keep class com.google.mlkit.nl.translate.** { *; }
+-keep class com.google.mlkit.nl.languageid.** { *; }
+-keep class com.google.android.gms.internal.mlkit_nl_translate.** { *; }
+
+# --- ML Kit: Barcode ---
+-keep class com.google.mlkit.vision.barcode.** { *; }
+
+# --- ML Kit common ---
+-keep class com.google.mlkit.common.** { *; }
+-keep class com.google.android.gms.tasks.** { *; }
+
+# --- Giữ Enum ---
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}

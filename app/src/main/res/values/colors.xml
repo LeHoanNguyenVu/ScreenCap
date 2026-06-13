@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Airbnb Colors -->
+    <color name="color_primary">#ff385c</color> <!-- Rausch -->
+    <color name="color_primary_active">#e00b41</color>
+    <color name="color_primary_disabled">#ffd1da</color>
+    <color name="color_ink">#222222</color>
+    <color name="color_body">#3f3f3f</color>
+    <color name="color_muted">#6a6a6a</color>
+    <color name="color_canvas">#ffffff</color>
+    <color name="color_hairline">#dddddd</color>
+    <color name="color_fog">#ebebeb</color>
+    <color name="color_arches">#f7f7f7</color>
+    
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>
