@@ -78,10 +78,8 @@ class TranslationEngine(private val context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
             // Thử lần lượt các model qua REST API trực tiếp (không dùng SDK bị bug)
             val modelsToTry = listOf(
-                "gemini-3.1-flash", // Dự phòng đón đầu nếu Google ra mắt API cho model này
                 "gemini-2.5-flash",
-                "gemini-2.0-flash",
-                "gemini-2.0-flash-lite"
+                "gemini-2.0-flash"
             )
             var lastError = "Unknown"
 

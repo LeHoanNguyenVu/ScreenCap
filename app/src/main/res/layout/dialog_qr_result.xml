@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_panel"
+    android:padding="24dp">
+
+    <!-- Top Drag Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:background="#dddddd"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="20dp" />
+
+    <!-- Icon & Title Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <ImageView
+            android:id="@+id/img_qr_icon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_qr_code"
+            app:tint="@color/color_primary"
+            android:layout_marginEnd="12dp" />
+
+        <TextView
+            android:id="@+id/tv_qr_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Đã tìm thấy mã!"
+            android:textColor="@color/color_ink"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium" />
+    </LinearLayout>
+
+    <!-- QR Content / Parsed details -->
+    <TextView
+        android:id="@+id/tv_qr_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_bubble"
+        android:padding="16dp"
+        android:textColor="@color/color_ink"
+        android:textSize="15sp"
+        android:lineSpacingMultiplier="1.2"
+        android:textIsSelectable="true"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Positive Button -->
+        <Button
+            android:id="@+id/btn_positive"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="HÀNH ĐỘNG"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:backgroundTint="@color/color_primary"
+            app:cornerRadius="12dp"
+            android:layout_marginBottom="10dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <!-- Neutral Button -->
+            <Button
+                android:id="@+id/btn_neutral"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="Sao chép tất cả"
+                android:textColor="@color/color_ink"
+                android:textSize="14sp"
+                android:backgroundTint="@color/color_fog"
+                app:cornerRadius="12dp"
+                android:layout_marginEnd="8dp" />
+
+            <!-- Negative Button -->
+            <Button
+                android:id="@+id/btn_negative"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="Đóng"
+                android:textColor="@color/color_ink"
+                android:textSize="14sp"
+                android:backgroundTint="@color/color_fog"
+                app:cornerRadius="12dp" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

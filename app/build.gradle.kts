@@ -89,10 +89,8 @@ dependencies {
     // ML Kit Barcode
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
 
-    // Gemini AI SDK (engine dịch chính - online)
-    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
 
-    // Kotlin Coroutines (cần cho Gemini SDK)
+    // Kotlin Coroutines (cần cho background tasks)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     // CameraX (ScannerActivity dùng để quét QR live qua camera)
     val camerax_version = "1.3.1"

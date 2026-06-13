@@ -1,7 +1,7 @@
-# TONG QUAN DU AN: SCEENCAP
+# TONG QUAN DU AN: SCREENCAP
 
 ## 1. Muc tieu ung dung
-SceenCap la mot cong cu tien ich (Utility App) hoat dong duoi dang Cua so noi (Floating Widget). Ung dung giup nguoi dung giai quyet bai toan: Trich xuat thong tin (Hinh anh, Van ban) tu man hinh mot cach sieu toc ma khong lam gian doan trai nghiem su dung dien thoai va khong lam rac thu vien anh.
+ScreenCap la mot cong cu tien ich (Utility App) hoat dong duoi dang Cua so noi (Floating Widget). Ung dung giup nguoi dung giai quyet bai toan: Trich xuat thong tin (Hinh anh, Van ban) tu man hinh mot cach sieu toc ma khong lam gian doan trai nghiệm su dung dien thoai va khong lam rac thu vien anh.
 
 ## 2. Tinh nang Cot loi (Da hoan thien)
 * Ngoi sao Lo lung (Floating Widget): Nut goi ung dung luon noi tren man hinh, co the di chuyen va thu gon.
@@ -12,7 +12,7 @@ SceenCap la mot cong cu tien ich (Utility App) hoat dong duoi dang Cua so noi (F
 * Nhan dien chu viet (OCR - Optical Character Recognition): Tich hop Google ML Kit (chay Offline 100%). Tu dong doc va trich xuat chu viet co trong vung anh vua cat ra thanh van ban thuan (Text).
 * Hanh dong Nhanh (Quick Actions):
   - Copy: Sao chep doan chu vua quet vao bo nho dem (Clipboard).
-  - Luu: Xuat anh da cat vao thu muc Pictures/SceenCap.
+  - Luu: Xuat anh da cat vao thu muc Pictures/ScreenCap.
   - Huy: Thoat tien trinh em ai, tra lai tu do cho nguoi dung, Ngoi sao van song.
   - Share: (Dang cho tich hop FileProvider).
 

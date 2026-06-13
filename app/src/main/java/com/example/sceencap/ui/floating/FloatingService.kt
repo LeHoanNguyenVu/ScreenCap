@@ -184,15 +184,15 @@ class FloatingService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel("sceencap_channel", "SceenCap Service", NotificationManager.IMPORTANCE_LOW)
+            val channel = NotificationChannel("screencap_channel", "ScreenCap Service", NotificationManager.IMPORTANCE_LOW)
             val manager = getSystemService(NotificationManager::class.java)
             manager?.createNotificationChannel(channel)
         }
     }
 
     private fun createNotification(text: String): Notification {
-        return NotificationCompat.Builder(this, "sceencap_channel")
-            .setContentTitle("SceenCap")
+        return NotificationCompat.Builder(this, "screencap_channel")
+            .setContentTitle("ScreenCap")
             .setContentText(text)
             .setSmallIcon(R.drawable.ic_capture)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -314,7 +314,11 @@ class FloatingService : Service() {
                                 buffer.position(0)
                                 bitmap.copyPixelsFromBuffer(buffer)
 
+                                // Recycle bitmap cũ để tránh memory leak
+                                capturedBitmap?.recycle()
                                 capturedBitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height)
+                                // Recycle bitmap trung gian (full-width)
+                                if (bitmap != capturedBitmap) bitmap.recycle()
 
                                 Handler(Looper.getMainLooper()).post {
                                     val intent = Intent(this@FloatingService, CropActivity::class.java)
@@ -352,23 +356,26 @@ class FloatingService : Service() {
         if (mediaProjection == null) return
         if (isCaptureProcessing) return
 
+        // Ẩn floating view ngay lập tức trước khi chụp ảnh màn hình
+        if (::floatingView.isInitialized) {
+            floatingView.visibility = View.GONE
+        }
+
         Handler(Looper.getMainLooper()).postDelayed({
             takePictureFlag = true
-            val animator = android.animation.ValueAnimator.ofFloat(1f, 0.99f, 1f)
-            animator.duration = 400
-            animator.addUpdateListener {
-                floatingView.alpha = it.animatedValue as Float
-            }
-            animator.start()
 
+            // Trình xử lý an toàn: nếu không có ảnh khả dụng sau 3 giây, hiện lại widget
             Handler(Looper.getMainLooper()).postDelayed({
                 if (takePictureFlag) {
                     takePictureFlag = false
                     isCaptureProcessing = false
+                    if (::floatingView.isInitialized) {
+                        floatingView.visibility = View.VISIBLE
+                    }
                 }
             }, 3000)
 
-        }, 300)
+        }, 150) // Chờ 150ms để OS kịp vẽ lại màn hình không chứa widget
     }
 
     private fun tearDownAll() {
